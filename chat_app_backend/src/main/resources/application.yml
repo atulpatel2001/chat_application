@@ -7,9 +7,9 @@ spring:
 
 # mysql database configurations
   datasource:
-    url: jdbc:postgresql://localhost:3308/chat
+    url: jdbc:postgresql://localhost:5432/chat
     username: postgres
-    password: root123
+    password: root
 
 # Hibernate configurations
   jpa:
@@ -22,11 +22,17 @@ spring:
 springdoc:
   api-docs:
     enabled: true
-    path: /v3/api-docs
+#    path: /v3/api-docs
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-
+#  paths-to-match: /chat/**
+#
+#
+#openapi: # Correct spelling
+#    dev-url: http://localhost:8083
+#    prod-url: http://localhost:8083
+#
 
 
 
