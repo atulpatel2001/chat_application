@@ -1,35 +1,40 @@
 package org.scm.chat.chat.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.scm.chat.model.BaseEntity;
+import org.scm.chat.user.model.User;
 
-import java.time.LocalDateTime;
-
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
-@Table(name = "chat_message")
-public class ChatMessage {
+@Table(name = "chat_messages")
+public class ChatMessage extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id", nullable = false)
     private ChatRoom chatRoom;
 
-    @Column(name = "sender_id", nullable = false)
-    private Long senderId;
+    @ManyToOne
+    @JoinColumn(name = "sender_id", nullable = false)
+    private User senderId;
 
-    @Column(name = "receiver_id")
-    private Long receiverId; // Nullable for group chats
+    @ManyToOne
+    @JoinColumn(name = "receiver_id")
+    private User receiverId; // This can be null for group messages
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String message;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
 }
 

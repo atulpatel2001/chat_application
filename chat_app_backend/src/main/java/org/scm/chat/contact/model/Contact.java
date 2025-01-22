@@ -1,44 +1,56 @@
 package org.scm.chat.contact.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.scm.chat.model.BaseEntity;
 import org.scm.chat.user.model.User;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Contact {
+@Builder
+@Entity
+@Table(name = "contacts")
+public class Contact extends BaseEntity {
 
     @Id
     private String id;
+
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
+
+    @Column(name = "email", nullable = false, length = 150)
     private String email;
+
+    @Column(name = "phone_number", length = 15)
     private String phoneNumber;
+
+    @Column(name = "address", length = 500)
     private String address;
+
+    @Column(name = "picture", length = 1000)
     private String picture;
-    @Column(length = 1000)
+
+    @Column(name = "description", length = 1000)
     private String description;
+
+    @Column(name = "is_favorite", nullable = false)
     private boolean favorite = false;
-    private String websiteLink;
-    private String linkedInLink;
-    // private List<String> socialLinks=new ArrayList<>();
+
+    @Column(name = "cloudinary_image_public_id", length = 255)
     private String cloudinaryImagePublicId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /*@OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    private List<SocialLink> links = new ArrayList<>();*/
+    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<SocialLink> links = new ArrayList<>();
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 }

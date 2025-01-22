@@ -1,46 +1,65 @@
 package org.scm.chat.user.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import org.scm.chat.contact.model.Contact;
+import lombok.*;
+import org.scm.chat.model.BaseEntity;
+import org.scm.chat.user.utility.Providers;
+import org.scm.chat.user.utility.Role;
 
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-@Data
 @Entity
-public class User {
+@Table(name = "user_master", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "email")
+})
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class User extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(unique = true, nullable = false)
-    private String username;
+    @Column(name = "user_name", nullable = false, length = 100) // Consistent naming convention
+    private String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(name = "email", unique = true, nullable = false, length = 150)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "password", nullable = false, length = 255)
     private String password;
+
+
+    @Column(name = "profile_picture", length = 1000) // Use descriptive column name
+    private String profilePic;
+
+    @Column(name = "phone_number", length = 15)
+    private String phoneNumber;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
+    @Column(name = "is_email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "is_phone_verified", nullable = false)
+    private boolean phoneVerified = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false, length = 20) // For Providers enum
+    private Providers provider = Providers.SELF;
+
+    @Column(name = "provider_user_id", length = 100)
+    private String providerUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-    private List<Contact> contacts = new ArrayList<>();
 
-    public enum Role {
-        ROLE_USER, ROLE_ADMIN
-    }
 }
-
