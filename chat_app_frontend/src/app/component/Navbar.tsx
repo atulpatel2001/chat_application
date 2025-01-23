@@ -27,7 +27,7 @@ const Navbar = () => {
         {/* Brand */}
         <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
           <img
-            src="/images/telephone.png"
+            src="/logo.png"
             className="h-8 shadow rounded-full"
             alt="Logo"
           />
@@ -93,7 +93,7 @@ const Navbar = () => {
           id="navbar-cta"
         >
           <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-            {[{ href: '/home', label: 'Home' }, { href: '/about', label: 'About' }, { href: '/services', label: 'Services' }, { href: '/contact', label: 'Contact' }].map((link) => (
+            {[{ href: '/chat/home', label: 'Home' }, { href: '/chat/about', label: 'About' }, { href: '/chat/services', label: 'Services' }, { href: '/chat/contact', label: 'Contact' }].map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
