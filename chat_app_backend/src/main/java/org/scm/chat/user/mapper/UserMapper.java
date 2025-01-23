@@ -9,7 +9,6 @@ public class UserMapper {
         public static UserDto userMapToUserDto(User user, UserDto  userDto){
             userDto.setName(user.getName());
             userDto.setEmail(user.getEmail());
-            /*userDto.setAbout(user.get());*/
             userDto.setPassword(user.getPassword());
             userDto.setPhoneNumber(user.getPhoneNumber());
             return userDto;
@@ -18,7 +17,6 @@ public class UserMapper {
         public static User UserDtoToUser(UserDto userDto, User user){
             user.setName(userDto.getName());
             user.setEmail(userDto.getEmail());
-           /* user.setAbout(userDto.getAbout());*/
             user.setPassword(userDto.getPassword());
             user.setPhoneNumber(userDto.getPhoneNumber());
 

@@ -31,9 +31,6 @@ public class UserDto {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
-    @Size(max = 1000, message = "About section cannot exceed 1000 characters")
-    private String about;
-
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits long")
     private String phoneNumber;
 
