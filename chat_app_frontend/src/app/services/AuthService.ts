@@ -11,7 +11,7 @@ export interface LoginResponse {
     scope: string;
   }
   const baseUrl="http://localhost:8081/chat/"
-
+ const baseUrl2="http://localhost:8081/"
 
 
   export const signin = async (data:UserForm)=> {
@@ -123,8 +123,18 @@ export interface LoginResponse {
 
 
   export const thirdPartyLogin = async (providerType:String)=> {
-    const url = baseUrl;
+    let url = baseUrl2;
+    console.log(url)
     try {
+      // console.log(providerType)
+        if(providerType == "github"){
+          console.log("github")
+          url=url+"oauth2/authorization/github"
+        }else if(providerType == "google"){
+          console.log("google")
+          url=url+"oauth2/authorization/google"
+        }
+        console.log(url)
         const response:any = await axios.post(url);
         console.log(response.data)
          const data2=response.data;
