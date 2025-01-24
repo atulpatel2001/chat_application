@@ -22,6 +22,7 @@ const Navbar = () => {
   };
 
   return (
+    <>
     <nav className="bg-white border-gray-900 shadow-sm dark:bg-gray-900">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
         {/* Brand */}
@@ -49,12 +50,12 @@ const Navbar = () => {
           </button>
 
           {/* Login and Signup buttons */}
-          <Link href="/login">
+          <Link href="/chat/login">
             <button className="text-white bg-gray-800 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
               Login
             </button>
           </Link>
-          <Link href="/register">
+          <Link href="/chat/signin">
             <button className="text-white bg-gray-800 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
               Signup
             </button>
@@ -111,6 +112,8 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
+
+    </>
   );
 };
 

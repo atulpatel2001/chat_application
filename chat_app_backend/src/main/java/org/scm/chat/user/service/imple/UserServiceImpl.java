@@ -32,7 +32,7 @@ public class UserServiceImpl implements UserService {
             throw new UserAlreadyExistsException("User already registered with the given Email Id: " + userDto.getEmail());
         }
         if (this.userRepository.findByPhoneNumber(userDto.getPhoneNumber()).isPresent()) {
-            throw new UserAlreadyExistsException("User already registered with the given Email Id: " + userDto.getEmail());
+            throw new UserAlreadyExistsException("User already registered with the given PhoneNumber: " + userDto.getPhoneNumber());
         }
        try{
          User user = UserMapper.UserDtoToUser(userDto, new User());
