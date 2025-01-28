@@ -1,4 +1,4 @@
-export interface User{
+export interface UserModel{
     userId:string;
     name:string;
     email: string;
@@ -6,5 +6,6 @@ export interface User{
     profilePic: string | null;
     phoneNumber: string;
     provider: string;
+    userImage: File | null;
 
   }

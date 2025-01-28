@@ -1,42 +1,88 @@
 'use client';
 import Navbar from "@/app/component/Navbar";
-import { User } from "@/app/model/User";
+import { UserModel } from "@/app/model/UserModel";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { logout, User } from '@/app/redux/slice/authSlice';
+import { updateUser, userInfo } from "@/app/services/user/UserService";
+import { toast } from 'react-toastify';
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+
+
+
+interface ValidationError {
+    [key: string]: string;
+}
 
 const Profile: React.FC = () => {
+
+    const router = useRouter();
+    const dispatch = useDispatch();
+
+    // const { isLoggedIn, user, token } = useSelector((state: RootState) => state.auth);
+
     // Set initial state for the profile
-    const [userProfile, setUserProfile] = useState<User>({
+    const [userProfile, setUserProfile] = useState<UserModel>({
         profilePic: "/logo.png",
-        phoneNumber: "123-456-7890",
+        phoneNumber: "1234567890",
         password: "********",
         name: "John Doe",
-        email: "john.doe@example.com",
+        email: "test@example.com",
         provider: "google",
-        userId: "151565nhbfhbfd"
+        userId: "151565nhbfhbfd",
+        userImage: null
     });
     const imageInputRef = useRef<HTMLInputElement | null>(null);
     const [newImage, setNewImage] = useState<File | null>(null);
     const [newPhoneNumber, setNewPhoneNumber] = useState<string>(userProfile.phoneNumber);
     const [newUsername, setNewUsername] = useState<string>(userProfile.name);
+    const [errors, setErrors] = useState<ValidationError>({});
+    const [isHidden, setIsHidden] = useState(true);
 
-    //   // Fetch user profile on component mount
-    //   useEffect(() => {
-    //     const fetchUserProfile = async () => {
-    //       try {
-    //         const response = await fetch("/api/user");  // Replace with your API endpoint
-    //         if (response.ok) {
-    //           const data = await response.json();
-    //           setUserProfile(data);
-    //         } else {
-    //           console.error("Failed to fetch user profile");
-    //         }
-    //       } catch (error) {
-    //         console.error("Error fetching user profile:", error);
-    //       }
-    //     };
+    useEffect(() => {
+        const fetchUserProfile = async () => {
 
-    //     fetchUserProfile();
-    //   }, []);
+            const token = localStorage.getItem("Chat_Auth_Token");
+            const storedUser = localStorage.getItem("Chat_User");
+            if (token && storedUser) {
+                const user: User = JSON.parse(storedUser);
+                const response = await userInfo(user.id);
+
+                if (response != undefined) {
+                    if (response.success == true) {
+                        setUserProfile(response.data);
+                        setNewPhoneNumber(response.data.phoneNumber != null ? response.data.phoneNumber : '');
+                        setNewUsername(response.data.name != null ? response.data.name : '');
+                        // setUserProfile((prevProfile) => ({
+                        //     ...prevProfile,
+                        //     userId:"cdnjkcnbdmjcdcd",
+                        // }))
+
+                    }else{
+                        if(response.status == 401){
+
+                            dispatch(logout());
+                            toast.error(response.message, {
+                                style: {
+                                    fontSize: '15px',
+                                    fontWeight: 'bold',
+                                    width: '400px',
+                                },
+                            });
+                            router.push("/chat/login");
+                        }
+                    }
+                }
+
+            } else {
+                dispatch(logout());
+                router.push('/chat/login');
+            }
+
+        };
+
+        fetchUserProfile();
+    }, []);
 
     // Handle image change
     const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +91,7 @@ const Profile: React.FC = () => {
             setNewImage(file);
             setUserProfile((prevProfile) => ({
                 ...prevProfile,
+                userImage: file,
                 profilePic: URL.createObjectURL(file),
             }));
         }
@@ -72,24 +119,38 @@ const Profile: React.FC = () => {
         };
 
         console.log(updatedProfile);
-        // try {
-        //   const response = await fetch("/api/user", {
-        //     method: "PUT",  // Assuming you use PUT to update the profile
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //     body: JSON.stringify(updatedProfile),
-        //   });
+        const responseData = await updateUser(updatedProfile);
 
-        //   if (response.ok) {
-        //     console.log("Profile updated successfully:", updatedProfile);
-        //     setUserProfile(updatedProfile);  // Update state with the new profile
-        //   } else {
-        //     console.error("Failed to update profile");
-        //   }
-        // } catch (error) {
-        //   console.error("Error updating profile:", error);
-        // }
+        if (responseData?.success) {
+            toast.success(responseData.message);
+        } else {
+            if (responseData?.field) {
+                setErrors(responseData.message);
+            } else {
+                if(responseData?.status == 401){
+                    dispatch(logout());
+                        toast.error(responseData.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+                        
+                        router.push("/chat/login");
+                   
+                }else{
+                toast.error(responseData?.message, {
+                    style: {
+                        fontSize: '15px',
+                        fontWeight: 'bold',
+                        width: '400px',
+                    },
+                });
+
+            }
+            }
+        }
 
     };
 
@@ -140,6 +201,8 @@ const Profile: React.FC = () => {
                                                 onChange={handleImageChange}
                                                 className="hidden" // Hide the file input
                                             />
+
+                                            {errors.userImage && <p className="mt-1 text-sm text-red-600 font-bold">{errors.userImage}</p>}
                                         </div>
                                     </div>
 
@@ -153,18 +216,21 @@ const Profile: React.FC = () => {
                                             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
                                         />
                                         <p className="text-sm text-gray-500 mt-1">Current phone number: {userProfile.phoneNumber}</p>
+                                        {errors.phoneNumber && <p className="mt-1 text-sm text-red-600 font-bold">{errors.phoneNumber}</p>}
                                     </div>
+                                    {!isHidden && (
+                                        <div className="mb-6">
+                                            <label className="text-lg font-medium text-gray-700 mb-2">User ID</label>
+                                            <input
+                                                type="text"
+                                                value={userProfile.userId}
+                                                disabled
+                                                className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
+                                            />
+                                            <p className="text-sm text-gray-500 mt-1">Your unique user ID: {userProfile.userId}</p>
+                                        </div>
 
-                                    <div className="mb-6">
-                                        <label className="text-lg font-medium text-gray-700 mb-2">User ID</label>
-                                        <input
-                                            type="text"
-                                            value={userProfile.userId}
-                                            disabled
-                                            className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
-                                        />
-                                        <p className="text-sm text-gray-500 mt-1">Your unique user ID: {userProfile.userId}</p>
-                                    </div>
+                                    )}
 
                                     <div className="mb-6">
                                         <label className="text-lg font-medium text-gray-700 mb-2">Username</label>
@@ -176,6 +242,7 @@ const Profile: React.FC = () => {
                                             className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
                                         />
                                         <p className="text-sm text-gray-500 mt-1">Current username: {userProfile.name}</p>
+                                        {errors.name && <p className="mt-1 text-sm text-red-600 font-bold">{errors.name}</p>}
                                     </div>
 
                                     <div className="mb-6">
@@ -187,6 +254,7 @@ const Profile: React.FC = () => {
                                             className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
                                         />
                                         <p className="text-sm text-gray-500 mt-1">Current email: {userProfile.email}</p>
+                                        {errors.email && <p className="mt-1 text-sm text-red-600 font-bold">{errors.email}</p>}
                                     </div>
 
                                     <div className="mb-6">
@@ -198,6 +266,7 @@ const Profile: React.FC = () => {
                                             className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg cursor-not-allowed"
                                         />
                                         <p className="text-sm text-gray-500 mt-1">Current password: {userProfile.password}</p>
+                                        {errors.password && <p className="mt-1 text-sm text-red-600 font-bold">{errors.password}</p>}
                                     </div>
 
                                     <div className="mb-6">

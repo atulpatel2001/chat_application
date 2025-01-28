@@ -10,6 +10,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.scm.chat.user.utility.Providers;
+import org.scm.chat.validators.ValidFile;
+import org.springframework.web.multipart.MultipartFile;
 
 @Getter
 @Setter
@@ -18,6 +22,15 @@ import lombok.ToString;
 @Builder
 @ToString
 public class UserDto {
+
+    @Schema(hidden = true)
+    private String userId;
+
+    @Schema(hidden = true)
+    private  String profilePic;
+
+    @Schema(hidden = true)
+    private Providers provider = Providers.SELF;
 
     @NotBlank(message = "Name is required")
     @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
@@ -34,4 +47,6 @@ public class UserDto {
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits long")
     private String phoneNumber;
 
+//    @ValidFile(message = "Invalid File")
+//    private MultipartFile userImage;
 }

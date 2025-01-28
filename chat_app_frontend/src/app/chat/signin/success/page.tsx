@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
-import { login_, User } from '@/app/redux/slice/authSlice';
+import { loadUserFromStorage, login_, User } from '@/app/redux/slice/authSlice';
 
 const LoginSuccess = () => {
     const router = useRouter();
@@ -26,12 +26,15 @@ const LoginSuccess = () => {
                     token: token,
                 })
             );
+
+            dispatch(loadUserFromStorage())
+            
             router.push('/chat/user/dashboard'); 
         } else {
             console.error('No token found in URL');
             router.push('/chat/login');
         }
-    }, [router]);
+    }, [router,dispatch]);
 
     return (
         <div className="relative w-full h-screen bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">

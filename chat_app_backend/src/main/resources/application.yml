@@ -5,11 +5,11 @@ spring:
     name: Chat_App
 
 
-# mysql database configurations
+# mysql database configurations 5432 root
   datasource:
-    url: jdbc:postgresql://localhost:5432/chat
+    url: jdbc:postgresql://localhost:3308/chat
     username: postgres
-    password: root
+    password: root123
 
 # Hibernate configurations
   jpa:
@@ -19,6 +19,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+ 
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 
 
@@ -45,5 +52,12 @@ chat:
     url: http://localhost:3000
 
 
+# cloudinary  configurations
+cloudinary:
+    cloud:
+        name: dnhniwrqh
+    api:
+        key: 227498921864399
+        secret: bXixRzuHrxY3enlPiuNyZh2tYPE
 
 

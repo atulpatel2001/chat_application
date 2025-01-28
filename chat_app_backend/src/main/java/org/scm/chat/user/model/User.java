@@ -60,6 +60,8 @@ public class User extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    private String cloudinaryImagePublicId;
+
 
 
 }

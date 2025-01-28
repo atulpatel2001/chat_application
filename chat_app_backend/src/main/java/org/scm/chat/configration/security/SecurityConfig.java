@@ -53,9 +53,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(authorize -> {
-            authorize.requestMatchers("/chat/register", "/chat/signup", "/chat/login","/**").permitAll().
-                    requestMatchers("/scm/**","/user/**","/ws/**").authenticated()
+            authorize.requestMatchers("/chat/user/**", "/ws/**").authenticated()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/**").permitAll()
                     .anyRequest().authenticated();
 
         });
