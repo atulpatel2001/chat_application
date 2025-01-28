@@ -1,6 +1,9 @@
 'use client';
+import Navbar from '@/app/component/Navbar';
 import { login, thirdPartyLogin } from '@/app/services/AuthService';
-import { useState } from 'react';
+
+import {useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 interface ValidationError {
     [key: string]: string;
@@ -11,20 +14,23 @@ export interface LoginFormData {
 }
 
 const LoginForm = () => {
+    const dispatch = useDispatch();
     const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
     const [errors, setErrors] = useState<ValidationError>({});
     const [loading, setLoading] = useState(false);
+  
 
 
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
-        const response = await login(formData);
+        const response = await login(formData,dispatch);
         console.log(response)
         if (response != undefined) {
             if (response.success == true) {
                 toast.success(response.message);
+                window.location.href="/chat/user/dashboard";
             } else {
                 if (response.field == true) {
                     setErrors(response.errors);
@@ -60,8 +66,8 @@ const LoginForm = () => {
             [name]: value,
         }));
     };
-
-    return (
+      
+    return (<><Navbar/>
         <div id="content">
             <div className="grid grid-cols-12 mt-4">
                 <div className="col-span-4 md:col-span-2 lg:col-span-3 xl:col-span-4"></div>
@@ -146,6 +152,7 @@ const LoginForm = () => {
                                     event.preventDefault();
                                     handleThirdPartyAuth("google");
                                 }}
+                                href='#'
                                 className="py-2 px-2 w-1/2 flex justify-center items-center bg-red-600 hover:bg-red-700 focus:ring-red-500 focus:ring-offset-red-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512" fill="currentColor" className="mr-2" width="20" height="20">
@@ -161,6 +168,7 @@ const LoginForm = () => {
                                     event.preventDefault();
                                     handleThirdPartyAuth("github");
                                 }}
+                                href='#'
                                 className="py-2 px-2 w-1/2 flex justify-center items-center bg-gray-600 hover:bg-gray-700 focus:ring-gray-500 focus:ring-offset-gray-200 text-white transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 rounded-lg"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="mr-2" viewBox="0 0 1792 1792">
@@ -172,7 +180,7 @@ const LoginForm = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div></>
     );
 };
 

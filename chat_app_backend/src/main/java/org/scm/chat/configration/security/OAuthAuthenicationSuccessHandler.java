@@ -17,6 +17,7 @@ import org.scm.chat.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +31,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Component
@@ -44,6 +47,9 @@ public class OAuthAuthenicationSuccessHandler implements AuthenticationSuccessHa
 
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Value(value = "${chat.frontend.url}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
@@ -99,11 +105,22 @@ public class OAuthAuthenicationSuccessHandler implements AuthenticationSuccessHa
 
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        JwtResponse jwtResponse = securityUtil.getJwtResponse(user.getEmail(), "password");
 
+        String encodedToken = URLEncoder.encode(jwtResponse.getJwtToken(), StandardCharsets.UTF_8);
+        String encodedUserName = URLEncoder.encode(jwtResponse.getUserName(), StandardCharsets.UTF_8);
+        String encodedUserId = URLEncoder.encode(String.valueOf(jwtResponse.getUserId()), StandardCharsets.UTF_8);
         // Write the JwtResponse object to the response
-        response.getWriter().write(securityUtil.getJwtResponse(user.getEmail(),"password"));
-        response.getWriter().flush();
+//        response.getWriter().write(securityUtil.getJwtResponse(user.getEmail(),"password"));
+//        response.getWriter().flush();
         //response.sendRedirect("http://localhost:3000/oauth2/callback?status=success&message=Login successful");
+
+        String redirectUrl = String.format(
+                frontendUrl+"/chat/signin/success?token=%s&userName=%s&userId=%s",
+                encodedToken, encodedUserName, encodedUserId
+        );
+
+        response.sendRedirect(redirectUrl);
     }
 
 

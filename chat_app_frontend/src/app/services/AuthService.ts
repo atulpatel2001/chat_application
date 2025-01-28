@@ -1,7 +1,9 @@
 import { LoginFormData } from "../chat/login/page";
-import { UserForm } from "../chat/signin/page";
+import { UserForm } from "../chat/signup/page";
 import axios from "axios";
 
+import { login_, User } from "../redux/slice/authSlice";
+import { AppDispatch } from "../redux/store/store";
 
 export interface LoginResponse {
     access_token: string;
@@ -11,7 +13,7 @@ export interface LoginResponse {
     scope: string;
   }
   const baseUrl="http://localhost:8081/chat/"
- const baseUrl2="http://localhost:8081/"
+  const baseUrl2="http://localhost:8081/"
 
 
   export const signin = async (data:UserForm)=> {
@@ -30,6 +32,7 @@ export interface LoginResponse {
         if (axios.isAxiosError(error)) {
           if (error.response) {
             const { status, data } = error.response;
+            console.log(data+""+status)
             if (status === 400) {
               // Handle validation errors
               if(data.email == undefined){
@@ -38,13 +41,13 @@ export interface LoginResponse {
                 errors: data.errors || data,
                 field:false
               };
-            }else{
-                return {
-                    success: false,
-                    errors: data.errors || data,
-                    field:true
-                  };
             }
+            }else if(status === 416){
+              return {
+                success: false,
+                errors: data.errors || data,
+                field:true
+              };
             } else if (status === 500) {
               return {
                 success: false,
@@ -74,20 +77,31 @@ export interface LoginResponse {
 
 
 
-  export const login = async (data:LoginFormData)=> {
+  export const login = async (data:LoginFormData,dispatch: AppDispatch)=> {
     const url = baseUrl+"login";
     try {
-        const response:any = await axios.post(url, data, {
+        const response = await axios.post(url, data, {
           headers: { "Content-Type": "application/json" },
         });
          console.log(response.data)
          const data2=response.data;
-         localStorage.setItem('Chat_Token', data2.jwtToken);
-         localStorage.setItem('Chat_UseName', data2.userName);
-         localStorage.setItem('Chat_Id', data2.userId);
-         console.log("token---->"+data2.jwtToken);
-         console.log("userId---->"+data2.userName);
-         console.log("userName---->"+data2.userId);
+        //  localStorage.setItem('Chat_Token', data2.jwtToken);
+        //  localStorage.setItem('Chat_UseName', data2.userName);
+        //  localStorage.setItem('Chat_Id', data2.userId);
+        //  console.log("token---->"+data2.jwtToken);
+        //  console.log("userId---->"+data2.userName);
+        //  console.log("userName---->"+data2.userId);
+         const userData:User={
+          email:data2.userName,
+          id:data2.userId
+         }
+         dispatch(
+          login_({
+            user: userData,
+            token: data2.jwtToken,
+          })
+        );
+
         return {
           success: true,
           message:data2.statusMsg,
@@ -122,34 +136,35 @@ export interface LoginResponse {
 
 
 
-  export const thirdPartyLogin = async (providerType:String)=> {
-    let url = baseUrl2;
+  export const thirdPartyLogin = async (providerType:string)=> {
+    const url:string = baseUrl2;
     console.log(url)
-    try {
+    // try {
       // console.log(providerType)
-        if(providerType == "github"){
-          console.log("github")
-          url=url+"oauth2/authorization/github"
-        }else if(providerType == "google"){
-          console.log("google")
-          url=url+"oauth2/authorization/google"
-        }
-        console.log(url)
-        const response:any = await axios.post(url);
-        console.log(response.data)
-         const data2=response.data;
+        // if(providerType == "github"){
+        //   console.log("github")
+        //   url=url+"oauth2/authorization/github"
+        // }else if(providerType == "google"){
+        //   console.log("google")
+        //   url=url+"oauth2/authorization/google"
+        // }
+        window.location.href = url+"oauth2/authorization/"+providerType; 
+        // console.log(url)
+        // const response:any = await axios.post(url);
+        // console.log(response.data)
+        //  const data2=response.data;
         //  localStorage.setItem('Chat_Token', data2.jwtToken);
         //  localStorage.setItem('Chat_UseName', data2.userName);
         //  localStorage.setItem('Chat_Id', data2.userId);
         //  console.log("token---->"+data2.jwtToken);
         //  console.log("userId---->"+data2.userName);
         //  console.log("userName---->"+data2.userId);
-        return {
-          success: true,
-          message:data2.statusMsg,
-        }; 
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
+      //   return {
+      //     success: true,
+      //     message:data2.statusMsg,
+      //   }; 
+      //  } catch () {
+      //   if (axios.isAxiosError(error)) {
       //     if(error != undefined){
       //     const  errorResponse  =  error.response?.data.errorCode;
       //        if(errorResponse === "BAD_REQUEST"){
@@ -172,6 +187,6 @@ export interface LoginResponse {
        
         
       // }
-    }
-  };
+  //   }
+   //};
 }

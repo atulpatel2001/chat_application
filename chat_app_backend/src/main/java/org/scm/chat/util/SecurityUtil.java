@@ -42,7 +42,7 @@ public class SecurityUtil {
 
     }*/
 
-    public String getJwtResponse(String email, String password) {
+    public JwtResponse getJwtResponse(String email, String password) {
        /* this.doAuthenticate(email, password);*/
         UserDetails userDetails = userDetailsService.loadUserByUsername(email);
         String token = this.helper.generateToken(userDetails);
@@ -58,6 +58,6 @@ public class SecurityUtil {
                 .statusMsg("Login Successful")
                 .build();
 
-        return jwtResponse.toString();
+        return jwtResponse;
     }
 }

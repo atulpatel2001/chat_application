@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.scm.chat.configration.jwtconfigration.payload.JwtResponse;
 import org.scm.chat.user.constant.UserConstant;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
@@ -17,12 +18,15 @@ import java.io.IOException;
 @Component
 public class AuthFailtureHandler implements AuthenticationFailureHandler {
 
+    @Value(value = "${chat.frontend.url}")
+    private String frontendUrl;
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException, ServletException {
         if (exception instanceof DisabledException) {
             HttpSession session = request.getSession();
             //response.sendRedirect("http://localhost:3000/oauth2/callback?status=error&message=Login failed. Please try again.");
+            response.sendRedirect(frontendUrl+"/chat/signin/failed");
         } else {
             //response.sendRedirect("http://localhost:3000/oauth2/callback?status=error&message=Login failed. Please try again.");
 //             request.getRequestDispatcher("/loginFail").forward(request, response);
@@ -40,6 +44,8 @@ public class AuthFailtureHandler implements AuthenticationFailureHandler {
             // Write the JwtResponse object to the response
             response.getWriter().write(jwtResponse.toString());  // Convert JwtResponse to JSON format
             response.getWriter().flush();*/
+
+            response.sendRedirect(frontendUrl+"/chat/signin/failed");
 
         }
     }
