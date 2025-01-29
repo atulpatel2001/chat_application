@@ -1,5 +1,6 @@
 package org.scm.chat.user.service.imple;
 
+import jakarta.servlet.http.HttpSession;
 import org.scm.chat.exception.UserAlreadyExistsException;
 import org.scm.chat.services.ImageService;
 import org.scm.chat.user.dto.UserDto;
@@ -77,16 +78,33 @@ public class UserServiceImpl implements UserService {
                 () -> new UserAlreadyExistsException("User not found with the given Id: " + userDto.getUserId())
         );
         try {
+            String existingProfilePic = user.getProfilePic();
             UserMapper.UserDtoToUser(userDto, user);
-            if(userImage != null && !userImage.isEmpty() && userImage.equals("null")){
-                String filename = UUID.randomUUID().toString();
-                String fileURL = imageService.uploadImage(userImage, filename);
-                user.setProfilePic(fileURL);
-                user.setCloudinaryImagePublicId(filename);
+            System.out.println(userImage.getOriginalFilename());
+            if(userImage != null && !userImage.isEmpty()){
+                if (existingProfilePic != null && !existingProfilePic.isEmpty()) {
+                    if(userImage.getOriginalFilename().equalsIgnoreCase("user_img3.png")){
+                        user.setProfilePic(existingProfilePic);
+                    }else {
+
+                        String filename = UUID.randomUUID().toString();
+                        String fileURL = imageService.uploadImage(userImage, filename);
+                        user.setProfilePic(fileURL);
+                        user.setOriginalProfilePicName(userImage.getOriginalFilename());
+                        user.setCloudinaryImagePublicId(filename);
+                    }
+                }else {
+                    String filename = UUID.randomUUID().toString();
+                    String fileURL = imageService.uploadImage(userImage, filename);
+                    user.setOriginalProfilePicName(userImage.getOriginalFilename());
+                    user.setProfilePic(fileURL);
+                    user.setCloudinaryImagePublicId(filename);
+                }
             }
             else {
                 user.setProfilePic("http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249");
             }
+
             userRepository.save(user);
             return true;
         } catch (Exception e) {

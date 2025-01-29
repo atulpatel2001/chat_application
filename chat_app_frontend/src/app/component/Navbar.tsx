@@ -78,6 +78,11 @@ const Navbar = () => {
               // Render content for logged-in users
             
               <div>
+                <Link href="/chat/contacts/add_contact">
+                  <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
+                    Add Contact
+                  </button>
+                </Link>
                  <Link href="/chat/user/profile">
                   <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
                     My Profile

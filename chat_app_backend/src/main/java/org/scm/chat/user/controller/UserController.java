@@ -25,23 +25,25 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/info")
-   private UserDto  getUserInfoById(@RequestParam @NotBlank(message = "User Id Must Be Require!!") String userId) {
-         return this.userService.getUserInfoById(userId);
-   }
+    private UserDto getUserInfoById(@RequestParam @NotBlank(message = "User Id Must Be Require!!") String userId) {
+        return this.userService.getUserInfoById(userId);
+    }
 
-   @PostMapping("/update_user")
-   private ResponseEntity<?> updateUser(@Valid @RequestBody UserDto userDto,@RequestParam("userImage") MultipartFile userImage) {
-       try {
+    @PostMapping(value = "/update_user", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    private ResponseEntity<?> updateUser(@Valid @RequestPart("userDto") UserDto userDto,
+                                         @RequestPart("userImage") MultipartFile userImage) {
+        try {
+            System.out.println(userDto.getPhoneNumber() + " " + userDto.getName());
+            boolean b = this.userService.updateUser(userDto, userImage);
+            if (b) {
+                return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(UserConstant.STATUS_201, UserConstant.MESSAGE_201));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDto(UserConstant.STATUS_400, UserConstant.MESSAGE_400));
+            }
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 
-           System.out.println(userDto.getPhoneNumber()+" "+userDto.getName());
-           boolean b = this.userService.updateUser(userDto,userImage);
-           if (b) {
-               return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(UserConstant.STATUS_201, UserConstant.MESSAGE_201));
-           } else {
-               return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDto(UserConstant.STATUS_400, UserConstant.MESSAGE_400));
-           }
-       } catch (ResourceNotFoundException e){
-           return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-       }
-   }
+
 }

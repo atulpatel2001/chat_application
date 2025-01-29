@@ -45,6 +45,7 @@ public class UserDto {
     private String password;
 
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits long")
+    @NotBlank(message = "phoneNumber is required")
     private String phoneNumber;
 
 //    @ValidFile(message = "Invalid File")

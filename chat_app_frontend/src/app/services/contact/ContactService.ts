@@ -1,72 +1,44 @@
-import { UserModel } from "@/app/model/UserModel";
+import { Contact } from "@/app/model/Contact";
 import { fetchDefaultImageAsFile } from "@/app/util/ImageUtil";
 import axios from "axios";
 
-const baseUrl = "http://localhost:8081/chat/user/";
+const baseUrl = "http://localhost:8081/chat/contact/";
 const token = localStorage.getItem("Chat_Auth_Token");
-export const userInfo = async (userId: string) => {
-    const url = baseUrl + "info?userId=" + userId;
-    try {
-        const response = await axios.get(url, {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        });
-        console.log(response.data)
-        return {
-            success: true,
-            data: response.data,
-        };
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            if (error != undefined) {
-                const errorMessage: string = error.response?.data.errorCode;
-                console.log(error)
-                if (error.response?.status == 401) {
-                    return {
-                        success: false,
-                        message: error.response?.data,
-                        status: error.response?.status
-                    }
-                } else {
-                    return {
-                        success: false,
-                        message: errorMessage,
-                        status: error.response?.status
-                    }
-                }
-            }
-        }
-    }
-};
 
 
-export const updateUser = async (userData: UserModel) => {
-    const url = baseUrl + "update_user";
+export const addContact = async (contactData: Contact) => {
+    const url = baseUrl + "add-contact";
     try {
         let formData = new FormData();
-        formData.append("userDto", new Blob([JSON.stringify({
-            userId: userData.userId,
-            name: userData.name,
-            email: userData.email,
-            password: userData.password,
-            phoneNumber: userData.phoneNumber
-        })], { type: "application/json" }));
+       
+        const contactDto = {
+            name: contactData.name,
+            email: contactData.email,
+            phoneNumber: contactData.phoneNumber,
+            address: contactData.address,
+            description: contactData.description,
+            favorite: contactData.favorite,
+            links: contactData.links?.map(link => ({
+                link: link.url,
+                title: link.title || ""  // Ensure the title is set
+            })) || []
+        };
 
+        formData.append("contactDto", new Blob([JSON.stringify(contactDto)], { type: "application/json" }));
+        console.log(contactDto);
         // if (userData.userImage) {
         //     formData.append("userImage", userData.userImage);
         // }
 
         // const defaultImage = new File([""], "/user_img3.png", { type: "image/png" });
         const defaultImage= await fetchDefaultImageAsFile("user_img3.png")
-        if (userData.userImage == null) {
+        if (contactData.contact_image== null) {
             console.log(defaultImage+" default image")
-            formData.append("userImage", defaultImage);
+            formData.append("contact_image", defaultImage);
         } else {
-            formData.append("userImage", userData.userImage);
-            console.log(userData.userImage+"userImagedddd");
+            formData.append("contact_image",contactData.contact_image);
+            console.log(contactData.contact_image+"userImagedddd");
         }
-        console.log(formData)
         const response = await axios.post(url, formData, {
             headers: {
                 "Content-Type": "multipart/form-data",

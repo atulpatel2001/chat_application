@@ -34,6 +34,8 @@ public class User extends BaseEntity {
     @Column(name = "profile_picture", length = 1000) // Use descriptive column name
     private String profilePic;
 
+    private String originalProfilePicName;
+
     @Column(name = "phone_number", length = 15)
     private String phoneNumber;
 
