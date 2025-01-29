@@ -1,9 +1,13 @@
 package org.scm.chat.contact.controller;
 
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import jakarta.validation.Valid;
+import org.scm.chat.contact.constant.ContactConstant;
 import org.scm.chat.contact.dto.ContactDto;
+import org.scm.chat.contact.services.ContactService;
+import org.scm.chat.exception.UserAlreadyExistsException;
+import org.scm.chat.exception.dto.ResponseDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +19,25 @@ import org.springframework.web.multipart.MultipartFile;
 @CrossOrigin("*")
 public class ContactController {
 
-
+    @Autowired
+    private ContactService contactService;
 
     @PostMapping(value = "/add-contact")
     public ResponseEntity<?> addContact(@Valid @RequestPart("contactDto") ContactDto contactDto, @RequestPart("contact_image") MultipartFile contact_image){
         System.out.println(contactDto.toString());
         System.out.println(contact_image.getOriginalFilename());
-        contactDto.getLinks().forEach(link -> System.out.println("Link: " + link.getLink() + ", Title: " + link.getTitle()));
+        try {
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Ok");
+            boolean contact = this.contactService.createContact(contactDto,contact_image);
+            if (contact) {
+                return ResponseEntity.status(HttpStatus.CREATED).body(new ResponseDto(ContactConstant.STATUS_201, ContactConstant.MESSAGE_201));
+            }else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDto(ContactConstant.STATUS_400, ContactConstant.MESSAGE_400));
+
+            }
+        }
+        catch (UserAlreadyExistsException e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
     }
  }

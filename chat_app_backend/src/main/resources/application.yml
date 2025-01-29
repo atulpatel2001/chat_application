@@ -7,9 +7,9 @@ spring:
 
 # mysql database configurations 5432 root
   datasource:
-    url: jdbc:postgresql://localhost:3308/chat
+    url: jdbc:postgresql://localhost:5432/chat
     username: postgres
-    password: root123
+    password: root
 
 # Hibernate configurations
   jpa:
@@ -21,7 +21,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
  
-
 
 
 springdoc:

@@ -4,10 +4,9 @@ import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Contact } from '@/app/model/Contact';
-import { GetServerSideProps } from 'next';
 import { addContact } from '@/app/services/contact/ContactService';
-import { User } from '@/app/redux/slice/authSlice';
-
+import { logout, User } from '@/app/redux/slice/authSlice';
+import { useDispatch } from "react-redux";
 interface ContactFormProps {
     contactId?: string;
 }
@@ -15,7 +14,7 @@ interface ContactFormProps {
 const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
 
     const user = localStorage.getItem("Chat_User");
-    const user2:User=JSON.parse(user || "");
+    const user2: User = JSON.parse(user || "");
     const [formData, setFormData] = useState<Contact>({
         name: '',
         email: '',
@@ -30,13 +29,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
     });
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
-    
+
     const [newImage, setNewImage] = useState<File | null>(null);
 
     const imageInputRef = useRef<HTMLInputElement | null>(null);
 
     const router = useRouter();
-
+    const dispatch = useDispatch();
     useEffect(() => {
         if (contactId) {
 
@@ -57,7 +56,38 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
 
         console.log(formData)
 
-        addContact(formData);
+        const responseData = await addContact(formData);
+        console.log(responseData)
+        if (responseData?.success) {
+            toast.success(responseData.message);
+        } else {
+            if (responseData?.field) {
+                setErrors(responseData.message);
+            } else {
+                if (responseData?.status == 401) {
+                    dispatch(logout());
+                    toast.error(responseData.message, {
+                        style: {
+                            fontSize: '15px',
+                            fontWeight: 'bold',
+                            width: '400px',
+                        },
+                    });
+
+                    router.push("/chat/login");
+
+                } else {
+                    toast.error(responseData?.message, {
+                        style: {
+                            fontSize: '15px',
+                            fontWeight: 'bold',
+                            width: '400px',
+                        },
+                    });
+
+                }
+            }
+        }
         // const method = contactId ? 'PUT' : 'POST';
         // const url = contactId ? `/api/contacts/${contactId}` : '/api/contacts';
 
@@ -115,13 +145,13 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
     const addLink = () => {
         setFormData({
             ...formData,
-            links: [...(formData.links ?? []), { title: '', url: '' }],
+            links: [...(formData.links ?? []), { title: '', link: '' }],
         });
     };
 
     const handleLinkChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         const { id, value } = e.target;
-        const updatedLinks = formData.links?.map((link: { title: string; url: string }, i: number) =>
+        const updatedLinks = formData.links?.map((link: { title: string; link: string }, i: number) =>
             i === index ? { ...link, [id.split('-')[0]]: value } : link
         );
         setFormData({ ...formData, links: updatedLinks });
@@ -198,7 +228,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                             required
                         />
                         {errors.name && (
-                            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.name}</p>
                         )}
                     </div>
 
@@ -219,7 +249,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                             required
                         />
                         {errors.email && (
-                            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.email}</p>
                         )}
                     </div>
 
@@ -239,7 +269,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                             placeholder="Enter phone number"
                         />
                         {errors.phoneNumber && (
-                            <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                            <p className="mt-1 text-sm text-red-600 font-bold" >{errors.phoneNumber}</p>
                         )}
                     </div>
 
@@ -275,13 +305,15 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                                 />
                                 <input
                                     type="url"
-                                    id={`url-${index}`}
-                                    value={link.url}
+                                    id={`link-${index}`}
+                                    value={link.link}
                                     onChange={(e) => handleLinkChange(e, index)}
                                     placeholder="URL"
                                     className="w-2/3 p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                     required
                                 />
+                                {errors.link && (
+                                    <p className="mt-1 text-sm text-red-600 font-bold">{errors.link}</p>)}
                                 <button
                                     type="button"
                                     onClick={() => removeLink(index)}
@@ -315,7 +347,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                             placeholder="Enter address"
                         />
                         {errors.address && (
-                            <p className="mt-1 text-sm text-red-600">{errors.address}</p>
+                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.address}</p>
                         )}
                     </div>
 
@@ -335,7 +367,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
                             placeholder="Enter Discription" />
 
                         {errors.description && (
-                            <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.description}</p>
                         )}
                     </div>
 

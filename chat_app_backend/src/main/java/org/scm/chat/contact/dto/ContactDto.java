@@ -19,7 +19,7 @@ import java.util.List;
 public class ContactDto {
 
     @Schema(hidden = true)
-    private String id;
+    private Long id;
 
     @NotBlank(message = "Name is required")
     @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
@@ -30,7 +30,7 @@ public class ContactDto {
     private String email;
 
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be 10 digits long")
-    @NotBlank(message = "phoneNumber is required")
+    @NotBlank(message = "PhoneNumber is required")
     private String phoneNumber;
 
     private String address;

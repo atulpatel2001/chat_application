@@ -9,7 +9,7 @@ export interface Contact {
     description?: string;
     favorite?: boolean;
     userId: string;
-    links?: Array<{ id?: string; url: string; title: string }>;
+    links?: Array<{ id?: string; link: string; title: string }>;
     contact_image:File | null;
   }
   

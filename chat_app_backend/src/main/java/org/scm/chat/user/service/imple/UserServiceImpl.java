@@ -1,6 +1,7 @@
 package org.scm.chat.user.service.imple;
 
 import jakarta.servlet.http.HttpSession;
+import org.scm.chat.exception.ResourceNotFoundException;
 import org.scm.chat.exception.UserAlreadyExistsException;
 import org.scm.chat.services.ImageService;
 import org.scm.chat.user.dto.UserDto;
@@ -75,7 +76,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean updateUser(UserDto userDto, MultipartFile userImage) {
         User user = this.userRepository.findById(userDto.getUserId()).orElseThrow(
-                () -> new UserAlreadyExistsException("User not found with the given Id: " + userDto.getUserId())
+                () -> new ResourceNotFoundException("User", "User Id", userDto.getUserId())
         );
         try {
             String existingProfilePic = user.getProfilePic();

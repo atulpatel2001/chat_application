@@ -18,8 +18,9 @@ export const addContact = async (contactData: Contact) => {
             address: contactData.address,
             description: contactData.description,
             favorite: contactData.favorite,
+            userId:contactData.userId,
             links: contactData.links?.map(link => ({
-                link: link.url,
+                link: link.link,
                 title: link.title || ""  // Ensure the title is set
             })) || []
         };
@@ -51,9 +52,9 @@ export const addContact = async (contactData: Contact) => {
         return {
             success: true,
             field: false,
-            message: 'Profile updated successfully'
+            message: 'Contact Added successfully'
         }
-    } catch (error) {console.log(error);
+    } catch (error) {
         if (axios.isAxiosError(error)) {
             if (error != undefined) {
 
@@ -63,14 +64,10 @@ export const addContact = async (contactData: Contact) => {
                     return {
                         success: false,
                         field: true,
-                        message: error.response.data
+                        message: error.response.data,
+                        status: error.response?.status,
                     }
                 } else {
-                    // return {
-                    //     success: false,
-                    //     field: false,
-                    //     message: error.response?.data.errorMessage
-                    // }
                     if (error.response?.status == 401) {
                         return {
                             success: false,
@@ -81,7 +78,7 @@ export const addContact = async (contactData: Contact) => {
                     } else {
                         return {
                             success: false,
-                            message: error.response?.data.errorMessage,
+                            message: error.response?.data,
                             status: error.response?.status,
                             field: false,
                         }
