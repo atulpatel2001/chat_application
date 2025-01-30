@@ -55,7 +55,7 @@ const menuItems = [
 ];
 
 const LeftSidebar = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
   const toggleSidebar = () => setIsOpen(!isOpen);

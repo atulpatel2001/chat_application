@@ -15,4 +15,6 @@ public interface ContactService {
     ContactDto getContactById(Long id);
 
     public boolean updateContact(ContactDto contactDto, MultipartFile contactImage,Long id);
+
+    boolean deleteContact(Long id);
 }

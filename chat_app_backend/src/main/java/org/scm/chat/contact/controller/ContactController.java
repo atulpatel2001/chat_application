@@ -89,4 +89,22 @@ public class ContactController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+
+    @DeleteMapping("/delete-contact-by-id")
+    public ResponseEntity<?> deleteContact(@RequestParam("contactId") Long contactId,Authentication authentication){
+        try {
+
+            String username = Helper.getEmailOfLoggedInUser(authentication);
+            System.out.println("Login User:-"+username);
+            boolean b = this.contactService.deleteContact(contactId);
+            if(b){
+                return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(ContactConstant.MESSAGE_200, ContactConstant.MESSAGE_200));
+            }else {
+                return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(ContactConstant.STATUS_417, ContactConstant.MESSAGE_417_DELETE));
+            }
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
  }

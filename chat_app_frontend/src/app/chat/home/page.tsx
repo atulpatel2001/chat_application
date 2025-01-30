@@ -2,7 +2,7 @@
 import Navbar from "@/app/component/Navbar";
 import React from "react";
 
-const Home_: React.FC = () => {
+const Dashboard: React.FC = () => {
   return (
     <div>
     <Navbar />
@@ -16,4 +16,4 @@ const Home_: React.FC = () => {
   );
 };
 
-export default Home_;
+export default Dashboard;

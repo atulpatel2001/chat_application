@@ -4,13 +4,14 @@ import { Edit, Eye, Trash, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/component/Navbar";
-import { getContacts, getContactsById } from "@/app/services/contact/ContactService";
+import { deleteContactsById, getContacts, getContactsById } from "@/app/services/contact/ContactService";
 import { logout } from "@/app/redux/slice/authSlice";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { Contact } from "@/app/model/Contact";
 import ProfileModal from "@/app/component/ProfileModal";
-
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 
 
 const ContactsPage = () => {
@@ -81,14 +82,73 @@ const ContactsPage = () => {
         }
 
     };
+
+
     const closeModal = () => {
         setIsModalOpen(false); // Close the modal
     };
-    const handleDelete = (id: string) => {
-        console.log("Delete", id);
-        // Add delete logic
+
+    const handleDelete = async (id: string) => {
+        confirmAlert({
+            customUI: ({ onClose }) => (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg text-center w-96">
+                        <h2 className="text-lg font-semibold text-gray-800">Confirm Deletion</h2>
+                        <p className="text-gray-600 mt-2">Are you sure you want to delete this contact?</p>
+                        <div className="flex justify-center space-x-4 mt-4">
+                        <button 
+                            onClick={() => {
+                                toast.info("Deletion canceled", {
+                                    position: "top-right",
+                                    autoClose: 2000,
+                                    style: { fontSize: "14px", fontWeight: "bold" }
+                                });
+                                onClose();
+                            }} 
+                            className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+                        >
+                            Cancel
+                        </button>
+                            <button 
+                                onClick={async () => {
+                                    await deleteContact(id);
+                                    onClose();
+                                }} 
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+        });
     };
 
+
+   const deleteContact=async(id:string)=>{
+    console.log("Delete", id);
+    const response = await deleteContactsById(id);
+    if (response?.success) {
+        const updatedContacts = contacts.filter(contact => contact.id !== id);
+        setContacts(updatedContacts);
+        toast.success("Contact deleted successfully!");
+    } else {
+        if (response?.status == 401) {
+            dispatch(logout());
+            toast.error(response.message, {
+                style: {
+                    fontSize: '15px',
+                    fontWeight: 'bold',
+                    width: '400px',
+                },
+            });
+            router.push("/chat/login");
+        } else {
+            toast.error("Failed to delete contact.");
+        }
+    }
+    }
     const handleChat = (id: string) => {
         console.log("Chat with", id);
         router.push(`/chat/${id}`);

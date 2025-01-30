@@ -254,3 +254,45 @@ export const updateContact = async (contactData: Contact,id:string) => {
         }
     }
 }
+
+
+
+
+export const deleteContactsById = async (id:string) => {
+    const url = baseUrl + "delete-contact-by-id?contactId="+id;
+    try {
+        
+        const response = await axios.delete(url,{
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        console.log(response.data)
+
+        return {
+            success: true,
+            message: response.data
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error != undefined) {
+                    if (error.response?.status == 401) {
+                        return {
+                            success: false,
+                            message: error.response?.data,
+                            status: error.response?.status,
+                        }
+                    } else {
+                        return {
+                            success: false,
+                            message: "Something Went Wrong Try Again After Some Time!!",
+                            status: error.response?.status,
+                        }
+                    }
+
+            
+            }
+        }
+    }
+}

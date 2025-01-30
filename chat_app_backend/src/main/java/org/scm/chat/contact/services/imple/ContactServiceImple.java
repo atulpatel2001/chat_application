@@ -189,4 +189,18 @@ public class ContactServiceImple implements ContactService {
         }
     }
 
+    @Override
+    public boolean deleteContact(Long id) {
+        Contact contact = this.contactRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Contact", "Id", id.toString())
+        );
+        try{
+             contact.setDeleted(true);
+             this.contactRepository.save(contact);
+            return true;
+        }catch (Exception e){
+            return  false;
+        }
+    }
+
 }
