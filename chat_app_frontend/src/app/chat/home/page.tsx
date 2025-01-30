@@ -5,10 +5,14 @@ import React from "react";
 const Home_: React.FC = () => {
   return (
     <div>
-      <Navbar/>
-      <h1>Welcome to the Home Page!</h1>
-      <p>This is the main landing page of your website.</p>
+    <Navbar />
+    <div className="max-w-7xl mx-auto p-6  min-h-screen">
+      <h2 className="text-2xl font-semibold mb-6 text-center">Welcome</h2>
+      <div className="  overflow-hidden">
+        <p>Learn more about our company and team.</p>
+      </div>
     </div>
+  </div>
   );
 };
 

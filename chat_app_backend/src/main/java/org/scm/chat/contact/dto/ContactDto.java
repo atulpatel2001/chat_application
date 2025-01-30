@@ -18,7 +18,7 @@ import java.util.List;
 @ToString
 public class ContactDto {
 
-    @Schema(hidden = true)
+//    @Schema(hidden = true)
     private Long id;
 
     @NotBlank(message = "Name is required")

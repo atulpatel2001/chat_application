@@ -7,6 +7,8 @@ import { logout, loadUserFromStorage } from "../redux/slice/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../redux/store/store';
 import { toast } from 'react-toastify';
+import LeftSidebar from './LeftSideBar';
+import RightSidebar from './RightSideBar';
 
 const Navbar = () => {
   const route = useRouter();
@@ -48,9 +50,14 @@ const Navbar = () => {
   };
 
   return (
-    <>
+    <>{isLoggedIn ? ( 
+      <div>
+    <LeftSidebar/>
+      <RightSidebar />
+      </div>
+    ):(<></>)}
       <nav className="bg-white border-gray-900 shadow-sm dark:bg-gray-900">
-        <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        <div className="max-w-screen-xl flex flex-wrap  justify-between mx-auto p-4">
           {/* Brand */}
           <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
             <img
@@ -78,11 +85,11 @@ const Navbar = () => {
               // Render content for logged-in users
             
               <div>
-                <Link href="/chat/contacts/add_contact">
+                {/* <Link href="/chat/contacts/add_contact">
                   <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
                     Add Contact
                   </button>
-                </Link>
+                </Link> */}
                  <Link href="/chat/user/profile">
                   <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
                     My Profile
@@ -165,7 +172,7 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-
+    
     </>
   );
 };

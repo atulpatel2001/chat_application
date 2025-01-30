@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Contact } from '@/app/model/Contact';
-import { addContact } from '@/app/services/contact/ContactService';
+import { addContact, getContactsById, updateContact } from '@/app/services/contact/ContactService';
 import { logout, User } from '@/app/redux/slice/authSlice';
 import { useDispatch } from "react-redux";
+import Navbar from '@/app/component/Navbar';
+import { Plus, Trash } from 'lucide-react';
 interface ContactFormProps {
     contactId?: string;
 }
 
-const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
+const ContactForm: React.FC<ContactFormProps> = () => {
 
     const user = localStorage.getItem("Chat_User");
     const user2: User = JSON.parse(user || "");
@@ -36,15 +38,56 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
 
     const router = useRouter();
     const dispatch = useDispatch();
-    useEffect(() => {
-        if (contactId) {
+    const searchParams = useSearchParams();
+    const id = searchParams.get('id') || '';
 
-            fetch(`/api/contacts/${contactId}`)
-                .then((response) => response.json())
-                .then((data) => setFormData(data))
-                .catch(() => toast.error('Failed to load contact data.'));
+    useEffect(() => {
+
+        if (id) {
+
+            // fetch(`/api/contacts/${id}`)
+            //     .then((response) => response.json())
+            //     .then((data) => setFormData(data))
+            //     .catch(() => toast.error('Failed to load contact data.'));
+            const getContactData = async () => {
+                const response = await getContactsById(id);
+
+                if (response?.success) {
+                    setFormData(response.message);
+                } else {
+                    if (response?.status == 401) {
+                        dispatch(logout());
+                        toast.error(response.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+
+                        router.push("/chat/login");
+
+                    } else {
+                        toast.error(response?.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+
+                    }
+
+                }
+            }
+
+            getContactData();
+
         }
-    }, [contactId]);
+
+
+        console.log(id);
+    }, [id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -55,36 +98,74 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
         e.preventDefault();
 
         console.log(formData)
-
-        const responseData = await addContact(formData);
-        console.log(responseData)
-        if (responseData?.success) {
-            toast.success(responseData.message);
-        } else {
-            if (responseData?.field) {
-                setErrors(responseData.message);
+        if (id) {
+            const responseData = await updateContact(formData, id);
+            console.log(responseData)
+            if (responseData?.success) {
+                //handleReset();
+                router.push("/chat/contacts/conatct_list")
+                toast.success(responseData.message);
             } else {
-                if (responseData?.status == 401) {
-                    dispatch(logout());
-                    toast.error(responseData.message, {
-                        style: {
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            width: '400px',
-                        },
-                    });
-
-                    router.push("/chat/login");
-
+                if (responseData?.field) {
+                    setErrors(responseData.message);
                 } else {
-                    toast.error(responseData?.message, {
-                        style: {
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            width: '400px',
-                        },
-                    });
+                    if (responseData?.status == 401) {
+                        dispatch(logout());
+                        toast.error(responseData.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
 
+                        router.push("/chat/login");
+
+                    } else {
+                        toast.error(responseData?.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+
+                    }
+                }
+            }
+        } else {
+            const responseData = await addContact(formData);
+            console.log(responseData)
+            if (responseData?.success) {
+                handleReset();
+                router.push("/chat/contacts/conatct_list")
+                toast.success(responseData.message);
+            } else {
+                if (responseData?.field) {
+                    setErrors(responseData.message);
+                } else {
+                    if (responseData?.status == 401) {
+                        dispatch(logout());
+                        toast.error(responseData.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+
+                        router.push("/chat/login");
+
+                    } else {
+                        toast.error(responseData?.message, {
+                            style: {
+                                fontSize: '15px',
+                                fontWeight: 'bold',
+                                width: '400px',
+                            },
+                        });
+
+                    }
                 }
             }
         }
@@ -121,7 +202,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
             picture: '',
             description: '',
             favorite: false,
-            userId: '',
+            userId: user2.id,
             links: [],
             contact_image: null
         });
@@ -149,7 +230,7 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
         });
     };
 
-    const handleLinkChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
+    const handleLinkChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>, index: number) => {
         const { id, value } = e.target;
         const updatedLinks = formData.links?.map((link: { title: string; link: string }, i: number) =>
             i === index ? { ...link, [id.split('-')[0]]: value } : link
@@ -182,209 +263,218 @@ const ContactForm: React.FC<ContactFormProps> = ({ contactId }) => {
     };
 
     return (
-        <div className="flex justify-center mt-8 mb-8">
-            <div className="w-full max-w-3xl p-6 border-t-4 border-blue-700 bg-white rounded-xl shadow-lg dark:bg-gray-800 dark:border-blue-700">
-                <h5 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
-                    {contactId ? 'Edit Contact' : 'Add Contact'}
-                </h5>
-                <form onSubmit={handleSubmit} noValidate>
+        <>
+            <Navbar />
+            <div className="flex justify-center mt-8 mb-8">
+                <div className="w-full max-w-3xl p-6 border-t-4 border-blue-700 bg-white rounded-xl shadow-lg dark:bg-gray-800 dark:border-blue-700">
+                    <h5 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
+                        {id ? 'Edit Contact' : 'Add Contact'}
+                    </h5>
+                    <form onSubmit={handleSubmit} noValidate>
 
 
-                    <div className="flex flex-col items-center mb-6">
-                        <div className="mb-4">
-                            <img
-                                src={formData.picture || "/user_img3.png"}
-                                alt="Profile Image"
-                                width={120}
-                                height={120}
-                                className="rounded-full border-4 border-indigo-600 shadow-lg cursor-pointer"
-                                onClick={handleImageClick}
-                            />
-                            <input
-                                ref={imageInputRef}
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="hidden"
-                            />
-
-                            {errors.userImage && <p className="mt-1 text-sm text-red-600 font-bold">{errors.userImage}</p>}
-                        </div>
-                    </div>
-                    <div className="mb-4">
-                        <label
-                            htmlFor="name"
-                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                        >
-                            Name
-                        </label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="Enter name"
-                            required
-                        />
-                        {errors.name && (
-                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.name}</p>
-                        )}
-                    </div>
-
-                    <div className="mb-4">
-                        <label
-                            htmlFor="email"
-                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                        >
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            id="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="name@example.com"
-                            required
-                        />
-                        {errors.email && (
-                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.email}</p>
-                        )}
-                    </div>
-
-                    <div className="mb-4">
-                        <label
-                            htmlFor="phoneNumber"
-                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                        >
-                            Phone Number
-                        </label>
-                        <input
-                            type="text"
-                            id="phoneNumber"
-                            value={formData.phoneNumber}
-                            onChange={handleChange}
-                            className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="Enter phone number"
-                        />
-                        {errors.phoneNumber && (
-                            <p className="mt-1 text-sm text-red-600 font-bold" >{errors.phoneNumber}</p>
-                        )}
-                    </div>
-
-
-                    <div className="mb-4">
-                        <label htmlFor="favorite" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Favorite
-                        </label>
-                        <input
-                            type="checkbox"
-                            id="favorite"
-                            checked={formData.favorite}
-                            onChange={handleChangeCheckBox}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                        />
-                    </div>
-
-
-                    <div className="mb-4">
-                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Social Links
-                        </label>
-                        {formData.links?.map((link: any, index: number) => (
-                            <div key={index} className="flex items-center mb-2">
-                                <input
-                                    type="text"
-                                    id={`title-${index}`}
-                                    value={link.title}
-                                    onChange={(e) => handleLinkChange(e, index)}
-                                    placeholder="Platform"
-                                    className="w-1/3 p-2.5 mr-2 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                    required
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="mb-4">
+                                <img
+                                    src={formData.picture || "/user_img3.png"}
+                                    alt="Profile Image"
+                                    width={120}
+                                    height={120}
+                                    className="rounded-full border-4 border-indigo-600 shadow-lg cursor-pointer"
+                                    onClick={handleImageClick}
                                 />
                                 <input
-                                    type="url"
-                                    id={`link-${index}`}
-                                    value={link.link}
-                                    onChange={(e) => handleLinkChange(e, index)}
-                                    placeholder="URL"
-                                    className="w-2/3 p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                                    required
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    className="hidden"
                                 />
-                                {errors.link && (
-                                    <p className="mt-1 text-sm text-red-600 font-bold">{errors.link}</p>)}
-                                <button
-                                    type="button"
-                                    onClick={() => removeLink(index)}
-                                    className="ml-2 text-red-500 hover:text-red-700"
-                                >
-                                    Remove
-                                </button>
+
+                                {errors.userImage && <p className="mt-1 text-sm text-red-600 font-bold">{errors.userImage}</p>}
                             </div>
-                        ))}
-                        <button
-                            type="button"
-                            onClick={addLink}
-                            className="px-4 py-2 mt-2 font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-                        >
-                            Add Link
-                        </button>
-                    </div>
+                        </div>
+                        <div className="mb-4">
+                            <label
+                                htmlFor="name"
+                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                                Name
+                            </label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="Enter name"
+                                required
+                            />
+                            {errors.name && (
+                                <p className="mt-1 text-sm text-red-600 font-bold">{errors.name}</p>
+                            )}
+                        </div>
 
-                    <div className="mb-4">
-                        <label
-                            htmlFor="address"
-                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                        >
-                            Address
-                        </label>
-                        <textarea
-                            id="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="Enter address"
-                        />
-                        {errors.address && (
-                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.address}</p>
-                        )}
-                    </div>
+                        <div className="mb-4">
+                            <label
+                                htmlFor="email"
+                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                id="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="name@example.com"
+                                required
+                            />
+                            {errors.email && (
+                                <p className="mt-1 text-sm text-red-600 font-bold">{errors.email}</p>
+                            )}
+                        </div>
+
+                        <div className="mb-4">
+                            <label
+                                htmlFor="phoneNumber"
+                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                                Phone Number
+                            </label>
+                            <input
+                                type="text"
+                                id="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                                className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="Enter phone number"
+                            />
+                            {errors.phoneNumber && (
+                                <p className="mt-1 text-sm text-red-600 font-bold" >{errors.phoneNumber}</p>
+                            )}
+                        </div>
 
 
-                    <div className="mb-4">
-                        <label
-                            htmlFor="description"
-                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                        >
-                            Description
-                        </label>
-                        <textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={handleChange}
-                            className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                            placeholder="Enter Discription" />
+                        <div className="mb-4">
+                            <label htmlFor="favorite" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Favorite
+                            </label>
+                            <input
+                                type="checkbox"
+                                id="favorite"
+                                checked={formData.favorite}
+                                onChange={handleChangeCheckBox}
+                                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                            />
+                        </div>
 
-                        {errors.description && (
-                            <p className="mt-1 text-sm text-red-600 font-bold">{errors.description}</p>
-                        )}
-                    </div>
 
-                    <div className="text-center">
-                        <button
-                            type="submit"
-                            className="px-6 py-3 bg-indigo-600 text-white font-semibold text-lg rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                        >
-                            Add Contact
-                        </button>
-                    </div>
-                </form>
+                        <div className="mb-4">
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white font-bold">
+                                Social Links
+                            </label>
+                            {formData.links?.map((link: any, index: number) => (
+                                <div key={index} className="flex items-center mb-2">
+                                    <select
+                                        id={`title-${index}`}
+                                        value={link.title}
+                                        onChange={(e) => handleLinkChange(e, index)}
+                                        className="w-1/3 p-2.5 mr-2 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="" >Select Title</option>
+                                        <option value="LinkedIn">LinkedIn</option>
+                                        <option value="GitHub">GitHub</option>
+                                        <option value="Twitter">Twitter</option>
+                                        <option value="Facebook">Facebook</option>
+                                        <option value="Instagram">Instagram</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <input
+                                        type="url"
+                                        id={`link-${index}`}
+                                        value={link.link}
+                                        onChange={(e) => handleLinkChange(e, index)}
+                                        placeholder="URL"
+                                        className="w-2/3 p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                                        required
+                                    />
+                                    {errors.link && (
+                                        <p className="mt-1 text-sm text-red-600 font-bold">{errors.link}</p>)}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeLink(index)}
+                                        className="ml-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-full"
+                                        title="Delete"
+                                    >
+                                        <Trash size={18} />
+                                    </button>
+                                </div>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={addLink}
+                                className="mt-4 p-2 bg-green-500 hover:bg-green-600 text-white rounded-full"
+                                title="Add new link"
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
 
+                        <div className="mb-4">
+                            <label
+                                htmlFor="address"
+                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                                Address
+                            </label>
+                            <textarea
+                                id="address"
+                                value={formData.address}
+                                onChange={handleChange}
+                                className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="Enter address"
+                            />
+                            {errors.address && (
+                                <p className="mt-1 text-sm text-red-600 font-bold">{errors.address}</p>
+                            )}
+                        </div>
+
+
+                        <div className="mb-4">
+                            <label
+                                htmlFor="description"
+                                className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                                Description
+                            </label>
+                            <textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={handleChange}
+                                className="w-full p-2.5 bg-gray-50 border rounded-lg text-gray-900 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                                placeholder="Enter Discription" />
+
+                            {errors.description && (
+                                <p className="mt-1 text-sm text-red-600 font-bold">{errors.description}</p>
+                            )}
+                        </div>
+
+                        <div className="text-center">
+                            <button
+                                type="submit"
+                                className="px-6 py-3 bg-indigo-600 text-white font-semibold text-lg rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                            >
+                                {id ? 'Edit Contact' : 'Add Contact'}
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
             </div>
-        </div>
 
-
+        </>
     )
 };
 

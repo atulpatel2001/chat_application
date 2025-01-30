@@ -17,6 +17,10 @@ public interface ContactMapper {
     // Convert Entity to DTO
     ContactDto toDto(Contact contact);
 
+    List<ContactDto> mapEntitiesToDtos(List<Contact> entities);
+
+    List<Contact> mapDtosToEntities(List<ContactDto> dtos);
+
     // Handle SocialLinks mapping
     List<SocialLink> mapSocialLinksDtoToEntity(List<SocialLinkDto> dtos);
 
