@@ -3,6 +3,7 @@ package org.scm.chat.chat.controller;
 
 import org.scm.chat.chat.dto.UserChatContactData;
 import org.scm.chat.chat.service.ChatMessageService;
+import org.scm.chat.util.Helper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,7 +25,9 @@ public class ChatController {
 
         try
         {
-             UserChatContactData chatParticipants = this.chatMessageService.getChatParticipants(contactId, authentication.getName());
+            String username = Helper.getEmailOfLoggedInUser(authentication);
+
+             UserChatContactData chatParticipants = this.chatMessageService.getChatParticipants(contactId,username);
             return ResponseEntity.status(HttpStatus.OK).body(chatParticipants);
 
         }catch (Exception e){

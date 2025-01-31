@@ -26,12 +26,13 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage,Long> {
     SELECT cm 
     FROM ChatMessage cm 
     WHERE 
-        (cm.senderId = :loggedInUserId AND cm.receiverId = :otherUserId) OR 
-        (cm.senderId = :otherUserId AND cm.receiverId = :loggedInUserId)
-    ORDER BY cm.createdAt desc 
+        (cm.senderId.id = :loggedInUserId AND cm.receiverId.id = :otherUserId) OR 
+        (cm.senderId.id = :otherUserId AND cm.receiverId.id = :loggedInUserId)
+    ORDER BY cm.createdAt desc
 """)
-    List<ChatMessage> findChatsBetweenUsersDesc(@Param("loggedInUserId") User loggedInUserId,
-                                            @Param("otherUserId") User otherUserId);
+    List<ChatMessage> findChatsBetweenUsersDesc(@Param("loggedInUserId") String loggedInUserId,
+                                                @Param("otherUserId") String otherUserId);
+
 
     @Query("""
     SELECT cm 

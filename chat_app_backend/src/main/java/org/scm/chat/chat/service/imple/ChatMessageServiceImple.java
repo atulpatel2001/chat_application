@@ -42,8 +42,8 @@ public class ChatMessageServiceImple implements ChatMessageService {
         UserChatContactData userChatContactData=new UserChatContactData();
         try{
             Optional<User> chatWithUser = this.userRepository.findByEmail(contact.getEmail());
-            Optional<User> loginUser = this.userRepository.findByEmail(contact.getEmail());
-             List<ChatMessage> chatsBetweenUsersDesc = this.chatMessageRepository.findChatsBetweenUsersDesc(chatWithUser.get(), loginUser.get());
+            Optional<User> loginUser = this.userRepository.findByEmail(loggedInUserId);
+             List<ChatMessage> chatsBetweenUsersDesc = this.chatMessageRepository.findChatsBetweenUsersDesc(chatWithUser.get().getId(), loginUser.get().getId());
              List<ChatMessage> latestMessagesForLoggedInUser = this.chatMessageRepository.findLatestMessagesForLoggedInUser(loginUser.get().getId());
 
              DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
