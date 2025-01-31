@@ -296,3 +296,44 @@ export const deleteContactsById = async (id:string) => {
         }
     }
 }
+
+
+
+export const isApplicableContactsById = async (id:string) => {
+    const url = baseUrl + "inapplicable-for-chat?contactId="+id;
+    try {
+        
+        const response = await axios.get(url,{
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        console.log(response.data)
+
+        return {
+            success: true,
+            message: response.data
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error != undefined) {
+                    if (error.response?.status == 401) {
+                        return {
+                            success: false,
+                            message: error.response?.data,
+                            status: error.response?.status,
+                        }
+                    } else {
+                        return {
+                            success: false,
+                            message: error.response?.data,
+                            status: error.response?.status,
+                        }
+                    }
+
+            
+            }
+        }
+    }
+}

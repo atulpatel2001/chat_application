@@ -17,4 +17,6 @@ public interface ContactService {
     public boolean updateContact(ContactDto contactDto, MultipartFile contactImage,Long id);
 
     boolean deleteContact(Long id);
+
+    boolean isUserExistsForChat(Long id,String userName);
 }

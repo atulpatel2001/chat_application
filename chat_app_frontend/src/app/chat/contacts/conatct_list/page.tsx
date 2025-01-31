@@ -4,7 +4,7 @@ import { Edit, Eye, Trash, MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/component/Navbar";
-import { deleteContactsById, getContacts, getContactsById } from "@/app/services/contact/ContactService";
+import { deleteContactsById, getContacts, getContactsById, isApplicableContactsById } from "@/app/services/contact/ContactService";
 import { logout } from "@/app/redux/slice/authSlice";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
@@ -96,24 +96,24 @@ const ContactsPage = () => {
                         <h2 className="text-lg font-semibold text-gray-800">Confirm Deletion</h2>
                         <p className="text-gray-600 mt-2">Are you sure you want to delete this contact?</p>
                         <div className="flex justify-center space-x-4 mt-4">
-                        <button 
-                            onClick={() => {
-                                toast.info("Deletion canceled", {
-                                    position: "top-right",
-                                    autoClose: 2000,
-                                    style: { fontSize: "14px", fontWeight: "bold" }
-                                });
-                                onClose();
-                            }} 
-                            className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
-                        >
-                            Cancel
-                        </button>
-                            <button 
+                            <button
+                                onClick={() => {
+                                    toast.info("Deletion canceled", {
+                                        position: "top-right",
+                                        autoClose: 2000,
+                                        style: { fontSize: "14px", fontWeight: "bold" }
+                                    });
+                                    onClose();
+                                }}
+                                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+                            >
+                                Cancel
+                            </button>
+                            <button
                                 onClick={async () => {
                                     await deleteContact(id);
                                     onClose();
-                                }} 
+                                }}
                                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                             >
                                 Delete
@@ -126,33 +126,51 @@ const ContactsPage = () => {
     };
 
 
-   const deleteContact=async(id:string)=>{
-    console.log("Delete", id);
-    const response = await deleteContactsById(id);
-    if (response?.success) {
-        const updatedContacts = contacts.filter(contact => contact.id !== id);
-        setContacts(updatedContacts);
-        toast.success("Contact deleted successfully!");
-    } else {
-        if (response?.status == 401) {
-            dispatch(logout());
-            toast.error(response.message, {
-                style: {
-                    fontSize: '15px',
-                    fontWeight: 'bold',
-                    width: '400px',
-                },
-            });
-            router.push("/chat/login");
+    const deleteContact = async (id: string) => {
+        console.log("Delete", id);
+        const response = await deleteContactsById(id);
+        if (response?.success) {
+            const updatedContacts = contacts.filter(contact => contact.id !== id);
+            setContacts(updatedContacts);
+            toast.success("Contact deleted successfully!");
         } else {
-            toast.error("Failed to delete contact.");
+            if (response?.status == 401) {
+                dispatch(logout());
+                toast.error(response.message, {
+                    style: {
+                        fontSize: '15px',
+                        fontWeight: 'bold',
+                        width: '400px',
+                    },
+                });
+                router.push("/chat/login");
+            } else {
+                toast.error("Failed to delete contact.");
+            }
         }
     }
+
+
+    const handleChat = async (id: string) => {
+        const data = await isApplicableContactsById(id);
+        if (data?.success) {
+            router.push(`/chat/contacts/chat?id=${id}`);
+        } else {
+            if (data?.status == 401) {
+                dispatch(logout());
+                toast.error(data.message, {
+                    style: {
+                        fontSize: '15px',
+                        fontWeight: 'bold',
+                        width: '400px',
+                    },
+                });
+                router.push("/chat/login");
+            } else {
+                toast.info("Your Friend do not Register In Our Plateform");
+            }
+        }
     }
-    const handleChat = (id: string) => {
-        console.log("Chat with", id);
-        router.push(`/chat/${id}`);
-    };
 
     return (
         <>
@@ -232,8 +250,8 @@ const ContactsPage = () => {
                 </div>
             </div>
             {isModalOpen && (
-        <ProfileModal contact={selectedContact!} onClose={closeModal} />
-      )}
+                <ProfileModal contact={selectedContact!} onClose={closeModal} />
+            )}
         </>
     );
 };

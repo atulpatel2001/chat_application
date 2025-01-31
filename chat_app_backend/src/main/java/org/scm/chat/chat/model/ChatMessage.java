@@ -5,6 +5,8 @@ import lombok.*;
 import org.scm.chat.model.BaseEntity;
 import org.scm.chat.user.model.User;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,6 +37,21 @@ public class ChatMessage extends BaseEntity{
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+
+    @Column(nullable = false)
+    private LocalDateTime timestamp;
+
+    @Enumerated(EnumType.STRING)
+    private MessageStatus status = MessageStatus.SENT;
+
+    public enum MessageStatus {
+        SENT,
+        DELIVERED,
+        READ
+    }
+
+
 
 }
 

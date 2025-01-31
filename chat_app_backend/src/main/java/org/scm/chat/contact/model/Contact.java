@@ -55,4 +55,8 @@ public class Contact extends BaseEntity {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contactUserId")
+    private User contactUserId;
 }

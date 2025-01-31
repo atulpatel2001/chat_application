@@ -1,5 +1,12 @@
 package org.scm.chat.contact.services.imple;
 
+import org.scm.chat.chat.model.ChatMessage;
+import org.scm.chat.chat.model.ChatParticipant;
+import org.scm.chat.chat.model.ChatRoom;
+import org.scm.chat.chat.repository.ChatMessageRepository;
+import org.scm.chat.chat.repository.ChatParticipantRepository;
+import org.scm.chat.chat.repository.ChatRoomRepository;
+import org.scm.chat.chat.utility.ChatType;
 import org.scm.chat.contact.dto.ContactDto;
 import org.scm.chat.contact.dto.SocialLinkDto;
 import org.scm.chat.contact.mapper.ContactMapper;
@@ -13,10 +20,12 @@ import org.scm.chat.exception.UserAlreadyExistsException;
 import org.scm.chat.services.ImageService;
 import org.scm.chat.user.model.User;
 import org.scm.chat.user.repository.UserRepository;
+import org.scm.chat.util.Helper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +49,14 @@ public class ContactServiceImple implements ContactService {
 
     @Autowired
     private ImageService imageService;
+
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
+
+    @Autowired
+    private ChatParticipantRepository chatParticipantRepository;
+    @Autowired
+    private ChatRoomRepository  chatRoomRepository ;
 
 
     @Override
@@ -65,7 +82,8 @@ public class ContactServiceImple implements ContactService {
 //             String contactId = UUID.randomUUID().toString();
 //             contact.setId(contactId);
              contact.setUser(user);
-
+              Optional<User> byEmail = this.userRepository.findByEmail(contact.getEmail());
+              byEmail.ifPresent(contact::setContactUserId);
              if (!contactImage.isEmpty()){
                  String filename = UUID.randomUUID().toString();
                  String fileURL = imageService.uploadImage(contactImage, filename);
@@ -149,6 +167,9 @@ public class ContactServiceImple implements ContactService {
              contact.setDescription(contactDto.getDescription());
              contact.setAddress(contactDto.getAddress());
              contact.setFavorite(contactDto.isFavorite());
+
+             Optional<User> byEmail = this.userRepository.findByEmail(contact.getEmail());
+            byEmail.ifPresent(contact::setContactUserId);
             if (contactDto.getLinks() != null) {
                 List<SocialLinkDto> links = contactDto.getLinks();
                 socialLinks = this.contactMapper.mapSocialLinksDtoToEntity(links);
@@ -201,6 +222,47 @@ public class ContactServiceImple implements ContactService {
         }catch (Exception e){
             return  false;
         }
+    }
+
+    @Override
+    public boolean isUserExistsForChat(Long id,String userName) {
+        Contact contact = this.contactRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Contact", "Id", id.toString())
+        );
+       try {
+            Optional<User> user = this.userRepository.findByEmail(contact.getEmail());
+            Optional<User> user2 = this.userRepository.findByEmail(userName);
+            if(user.isPresent()){
+                if (contact.getContactUserId() == null){
+                    contact.setContactUserId(user.get());
+                    this.contactRepository.save(contact);
+                }
+                 List<ChatMessage> chatsBetweenUsers = this.chatMessageRepository.findChatsBetweenUsers(user.get(), user2.get());
+                 if (chatsBetweenUsers.isEmpty()){
+                     ChatRoom chatRoom=ChatRoom.builder().name(user.get().getName()+"--"+user2.get().getName()).type(ChatType.SINGLE).build();
+                     final ChatRoom save = chatRoomRepository.save(chatRoom);
+                      ChatParticipant firstParticipant = ChatParticipant.builder()
+                             .chatRoom(save)
+                             .joinedAt(LocalDateTime.now())
+                             .user(user.get())
+                             .build();
+                     ChatParticipant secondParticipant = ChatParticipant.builder()
+                             .chatRoom(save)
+                             .joinedAt(LocalDateTime.now())
+                             .user(user2.get())
+                             .build();
+
+                     chatParticipantRepository.save(firstParticipant);
+                     chatParticipantRepository.save(secondParticipant);
+                 }
+                return true;
+            }else {
+                return false;
+            }
+       } catch (Exception e) {
+           e.printStackTrace();
+           return false;
+       }
     }
 
 }

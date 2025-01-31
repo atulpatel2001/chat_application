@@ -101,10 +101,26 @@ public class ContactController {
             if(b){
                 return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(ContactConstant.MESSAGE_200, ContactConstant.MESSAGE_200));
             }else {
-                return ResponseEntity.status(HttpStatus.OK).body(new ResponseDto(ContactConstant.STATUS_417, ContactConstant.MESSAGE_417_DELETE));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResponseDto(ContactConstant.STATUS_417, ContactConstant.MESSAGE_417_DELETE));
             }
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
+
+    @GetMapping("/inapplicable-for-chat")
+    public ResponseEntity<?> inapplicableContact(@RequestParam("contactId") Long contactId,Authentication authentication){
+        try {
+            String username = Helper.getEmailOfLoggedInUser(authentication);
+            boolean b = this.contactService.isUserExistsForChat(contactId,username);
+            if(b){
+                return ResponseEntity.status(HttpStatus.OK).body(true);
+            }else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(false);
+            }
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
  }

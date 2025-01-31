@@ -35,5 +35,8 @@ public class ChatParticipant extends BaseEntity {
     private boolean isDeleted = false;
 
 
+
+
+
 }
 
