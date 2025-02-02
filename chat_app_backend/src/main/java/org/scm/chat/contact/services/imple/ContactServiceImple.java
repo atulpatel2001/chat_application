@@ -64,10 +64,10 @@ public class ContactServiceImple implements ContactService {
         User user = this.userRepository.findById(contactDto.getUserId()).orElseThrow(
                 ()-> new ResourceNotFoundException("User", "User Id", contactDto.getUserId())
         );
-         if (this.contactRepository.findByEmailAndUser(contactDto.getEmail(),user).isPresent()){
+         if (this.contactRepository.findByEmailAndUserAndIsDeletedFalse(contactDto.getEmail(),user).isPresent()){
              throw new UserAlreadyExistsException("Contact already Added with the given Email Id: " + contactDto.getEmail());
          }
-         if (this.contactRepository.findByPhoneNumberAndUser(contactDto.getPhoneNumber(),user).isPresent()){
+         if (this.contactRepository.findByPhoneNumberAndUserAndIsDeletedFalse(contactDto.getPhoneNumber(),user).isPresent()){
              throw new UserAlreadyExistsException("Contact already Added with the given PhoneNumber: " + contactDto.getPhoneNumber());
          }
 
@@ -146,12 +146,12 @@ public class ContactServiceImple implements ContactService {
         );
 
         if(!contact.getEmail().equalsIgnoreCase(contactDto.getEmail())) {
-            if (this.contactRepository.findByEmailAndUser(contactDto.getEmail(),contact.getUser()).isPresent()){
+            if (this.contactRepository.findByEmailAndUserAndIsDeletedFalse(contactDto.getEmail(),contact.getUser()).isPresent()){
                 throw new UserAlreadyExistsException("Contact already Added with the given Email Id: " + contactDto.getEmail());
             }
         }
         if(!contact.getPhoneNumber().equalsIgnoreCase(contactDto.getPhoneNumber())) {
-            if (this.contactRepository.findByPhoneNumberAndUser(contactDto.getPhoneNumber(),contact.getUser()).isPresent()){
+            if (this.contactRepository.findByPhoneNumberAndUserAndIsDeletedFalse(contactDto.getPhoneNumber(),contact.getUser()).isPresent()){
                 throw new UserAlreadyExistsException("Contact already Added with the given PhoneNumber: " + contactDto.getPhoneNumber());
             }
         }
@@ -237,8 +237,9 @@ public class ContactServiceImple implements ContactService {
                     contact.setContactUserId(user.get());
                     this.contactRepository.save(contact);
                 }
-                 List<ChatMessage> chatsBetweenUsers = this.chatMessageRepository.findChatsBetweenUsers(user.get(), user2.get());
-                 if (chatsBetweenUsers.isEmpty()){
+                // List<ChatMessage> chatsBetweenUsers = this.chatMessageRepository.findChatsBetweenUsers(user.get(), user2.get());
+                Long groupId = this.chatRoomRepository.findBetweenTwoUserGroupExists(user2.get().getId(), user.get().getId());
+                if (groupId == null){
                      ChatRoom chatRoom=ChatRoom.builder().name(user.get().getName()+"--"+user2.get().getName()).type(ChatType.SINGLE).build();
                      final ChatRoom save = chatRoomRepository.save(chatRoom);
                       ChatParticipant firstParticipant = ChatParticipant.builder()

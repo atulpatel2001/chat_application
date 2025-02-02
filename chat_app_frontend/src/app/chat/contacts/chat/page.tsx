@@ -17,24 +17,7 @@ import { toast } from "react-toastify";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/component/Navbar";
 import { getContactsById } from "@/app/services/contact/ContactService";
-import { Contact } from "@/app/model/Contact";
-
-// const contacts = [
-//   {
-//     id: 1,
-//     name: "John Doe",
-//     lastMessage: "Hey, how are you?",
-//     time: "10:30 AM",
-//     profilePic: "https://via.placeholder.com/50",
-//   },
-//   {
-//     id: 2,
-//     name: "Jane Smith",
-//     lastMessage: "Let's catch up!",
-//     time: "Yesterday",
-//     profilePic: "https://via.placeholder.com/50",
-//   },
-// ];
+// import { Contact } from "@/app/model/Contact";
 
 export default function ChatPage() {
   const [selectedChat, setSelectedChat] = useState<ChatDisplayDto>({
@@ -42,7 +25,8 @@ export default function ChatPage() {
     lastMessage: "",
     lastMessageTime: "",
     name: "",
-    profilePic: ""
+    profilePic: "",
+    userId:""
 
   });
 
@@ -52,34 +36,34 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState("");
   const [displayData, setDisplayData] = useState<ChatDisplayDto[]>([
-    {
-      lastMessage: "Hey, how are you?",
-      lastMessageTime: "12:10 pm",
-      name: "John Doe",
-      profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
-      roomId: "1"
-    },
-    {
-      lastMessage: "Hey, how are you?",
-      lastMessageTime: "12:10 pm",
-      name: "John Doe",
-      profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
-      roomId: "2"
-    },
-    {
-      lastMessage: "Hey, how are you?",
-      lastMessageTime: "12:10 pm",
-      name: "John Doe",
-      profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
-      roomId: "3"
-    },
-    {
-      lastMessage: "Hey, how are you?",
-      lastMessageTime: "12:10 pm",
-      name: "John Doe",
-      profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
-      roomId: "4"
-    }
+    // {
+    //   lastMessage: "Hey, how are you?",
+    //   lastMessageTime: "12:10 pm",
+    //   name: "John Doe",
+    //   profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
+    //   roomId: "1"
+    // },
+    // {
+    //   lastMessage: "Hey, how are you?",
+    //   lastMessageTime: "12:10 pm",
+    //   name: "John Doe",
+    //   profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
+    //   roomId: "2"
+    // },
+    // {
+    //   lastMessage: "Hey, how are you?",
+    //   lastMessageTime: "12:10 pm",
+    //   name: "John Doe",
+    //   profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
+    //   roomId: "3"
+    // },
+    // {
+    //   lastMessage: "Hey, how are you?",
+    //   lastMessageTime: "12:10 pm",
+    //   name: "John Doe",
+    //   profilePic: "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249",
+    //   roomId: "4"
+    // }
   ]);
   const dispatch = useDispatch()
   const router = useRouter();
@@ -92,6 +76,8 @@ export default function ChatPage() {
       const response = await getChatsForDisplay(id);
       if (response?.success) {
         console.log(response.message);
+        setDisplayData(response.message.chatDisplayDtos);
+        setSelectedChat(response.message.singleEmployee);
         // setContacts(response.message);
       } else {
         if (response?.status == 401) {
@@ -107,6 +93,7 @@ export default function ChatPage() {
         }
       }
     }
+
     const getContactData = async () => {
       const response = await getContactsById(id);
 
@@ -138,9 +125,9 @@ export default function ChatPage() {
 
       }
     }
-
+    getContactData()
     fetchData();
-  }, []);
+  }, [id]);
 
   const sendMessage = () => {
     if (input.trim() === "") return;

@@ -11,9 +11,12 @@ import lombok.*;
 public class ChatDisplayDto {
 
     private Long roomId;
+    private String userId;
     private String name;
 
     private String lastMessage;
+
+    private String email;
 
     private String lastMessageTime;
 

@@ -12,13 +12,13 @@ public interface ContactRepository extends JpaRepository<Contact,Long> {
 
     Optional<List<Contact>> findByUserAndIsDeletedFalse(User user);
 
-    Optional<Contact> findByEmail(String email);
+    Optional<Contact> findByEmailAndIsDeletedFalse(String email);
 
-    Optional<Contact> findByPhoneNumber(String phoneNumber);
+    Optional<Contact> findByPhoneNumberAndIsDeletedFalse(String phoneNumber);
 
-    Optional<Contact> findByEmailAndUser(String email, User user);
-    Optional<Contact> findByPhoneNumberAndUser(String phoneNumber, User user);
+    Optional<Contact> findByEmailAndUserAndIsDeletedFalse(String email, User user);
+    Optional<Contact> findByPhoneNumberAndUserAndIsDeletedFalse(String phoneNumber, User user);
 
-    @Query(value = "select * from contacts where user_id =:userId AND contactUserId =:contactUserId",nativeQuery = true)
+    @Query(value = "select * from contacts where user_id =:userId AND contactUserId =:contactUserId and isDeleted =false",nativeQuery = true)
     Optional<List<Contact>> findByUserIdAndContactUserId(Long userId, Long contactUserId);
 }

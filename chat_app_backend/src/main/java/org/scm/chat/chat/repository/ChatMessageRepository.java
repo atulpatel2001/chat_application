@@ -34,20 +34,36 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage,Long> {
                                                 @Param("otherUserId") String otherUserId);
 
 
-    @Query("""
-    SELECT cm 
-    FROM ChatMessage cm
-    WHERE cm.timestamp = (
-        SELECT MAX(subCm.timestamp)
-        FROM ChatMessage subCm
-        WHERE (subCm.senderId.id = :loggedInUserId AND subCm.receiverId.id = cm.receiverId.id)
-           OR (subCm.senderId.id = cm.receiverId.id AND subCm.receiverId.id = :loggedInUserId)
-    )
-    AND (
-        (cm.senderId.id = :loggedInUserId AND cm.receiverId.id IS NOT NULL)
-        OR (cm.receiverId.id = :loggedInUserId AND cm.senderId.id IS NOT NULL)
-    )
-    ORDER BY cm.timestamp DESC
-""")
-    List<ChatMessage> findLatestMessagesForLoggedInUser(@Param("loggedInUserId") String loggedInUserId);
+    @Query(value = "SELECT DISTINCT u.id,g.id, u.user_name, u.email, u.profile_picture, m.content, m.timestamp\n" +
+            "FROM chat_participants gm\n" +
+            "JOIN chat_rooms g ON gm.chat_room_id = g.id\n" +
+            "JOIN chat_messages m ON g.id = m.chat_room_id\n" +
+            "JOIN user_master u ON (m.sender_id = u.id OR gm.user_id = u.id)\n" +
+            "WHERE gm.user_id = :loggedInUserId -- Logged-in user ID\n" +
+            "  AND u.id != :loggedInUserId -- Exclude the logged-in user\n" +
+            "  AND g.chat_type = 'SINGLE'\n" +
+            "  AND m.timestamp = (\n" +
+            "      SELECT MAX(m2.timestamp)\n" +
+            "      FROM chat_messages m2\n" +
+            "      WHERE m2.chat_room_id = g.id\n" +
+            "        AND (m2.sender_id = u.id OR m2.sender_id = gm.user_id)\n" +
+            "  );",nativeQuery = true)
+    List<Object[]> findLatestMessagesForLoggedInUser(@Param("loggedInUserId") String loggedInUserId);
+
+    @Query(value = "\n" +
+            "  SELECT DISTINCT u.id,g.id, u.user_name, u.email, u.profile_picture, m.content, m.timestamp\n" +
+            "FROM chat_participants gm\n" +
+            "JOIN chat_rooms g ON gm.chat_room_id = g.id\n" +
+            "JOIN chat_messages m ON g.id = m.chat_room_id\n" +
+            "JOIN user_master u ON m.sender_id = u.id\n" +
+            "WHERE gm.user_id = :loggedInUserId -- Logged-in user ID\n" +
+            "  AND u.id = :selectedUser  -- Replace with the actual selected user ID\n" +
+            "  AND g.chat_type = 'SINGLE'\n" +
+            "  AND m.timestamp = (\n" +
+            "      SELECT MAX(m2.timestamp)\n" +
+            "      FROM chat_messages m2\n" +
+            "      WHERE m2.chat_room_id = g.id\n" +
+            "        AND m2.sender_id = u.id\n" +
+            "  );",nativeQuery = true)
+    List<Object[]> getSingleUserLastMessageDataForDisplay(@Param("loggedInUserId") String loggedInUserId,@Param("selectedUser")String selectedUser);
 }
