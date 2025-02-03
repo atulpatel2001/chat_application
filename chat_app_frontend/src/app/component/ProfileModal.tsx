@@ -79,7 +79,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ contact, onClose }) => {
                     {link.title === 'Twitter' && <FaTwitter size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />}
                     {link.title === 'Facebook' && <FaFacebook size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />}
                     {link.title === 'Instagram' && <FaInstagram size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />}
-                    {link.title === 'Twitter' && <FaTwitter size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />}
+                    {/* {link.title === 'Twitter' && <FaTwitter size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />} */}
                     {link.title === '' || link.title === 'Other' && <FaAdjust size={35} className="transition-all duration-300 ease-in-out hover:scale-110" />}
                   </a>
                 );

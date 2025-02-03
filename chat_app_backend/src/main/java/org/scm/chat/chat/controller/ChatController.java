@@ -1,16 +1,27 @@
 package org.scm.chat.chat.controller;
 
 
+import org.scm.chat.chat.dto.ChatMessageDto;
+import org.scm.chat.chat.dto.KafkaMessageDto;
 import org.scm.chat.chat.dto.UserChatContactData;
 import org.scm.chat.chat.service.ChatMessageService;
+import org.scm.chat.chat.service.MessageProducer;
+import org.scm.chat.exception.ResourceNotFoundException;
+import org.scm.chat.user.model.User;
+import org.scm.chat.user.repository.UserRepository;
 import org.scm.chat.util.Helper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping(value = "/chat/with", produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -20,6 +31,12 @@ public class ChatController {
     @Autowired
     private  ChatMessageService chatMessageService;
 
+    @Value("${chat.kafka.single}")
+    private String topic;
+    @Autowired
+    private MessageProducer messageProducer;
+    @Autowired
+    private UserRepository userRepository;
     @GetMapping("/get-chats")
     public ResponseEntity<?> getChatsBetweenUser(@RequestParam("contactId") Long contactId, Authentication authentication){
 
@@ -33,5 +50,32 @@ public class ChatController {
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
+    }
+
+    @GetMapping("/get-messages")
+    public ResponseEntity<?> getMessageBetweenUser(@RequestParam("roomId") Long roomId, Authentication authentication){
+
+        try
+        {
+            String username = Helper.getEmailOfLoggedInUser(authentication);
+
+             List<ChatMessageDto> chatMessages = this.chatMessageService.getChatMessages(roomId, username);
+            return ResponseEntity.status(HttpStatus.OK).body(chatMessages);
+
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @MessageMapping("/chat.sendMessage")
+    public String sendMessage(@RequestBody KafkaMessageDto message, Authentication authentication) {
+        String username = Helper.getEmailOfLoggedInUser(authentication);
+        User user = this.userRepository.findByEmail(username).orElseThrow(
+                ()-> new ResourceNotFoundException("User", "Email Id", username)
+        );
+        message.setSenderId(user.getId());
+        message.setTimestamp(LocalDateTime.now().toString());
+        messageProducer.sendMessage(topic, message);
+        return "Message sent: " + message;
     }
 }

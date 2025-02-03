@@ -18,4 +18,6 @@ public class UserChatContactData {
     private ChatDisplayDto singleEmployee;
 
     private List<ChatDisplayDto> chatDisplayDtos;
+
+    private  List<ChatMessageDto> chatMessageDtos;
 }

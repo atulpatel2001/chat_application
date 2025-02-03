@@ -7,9 +7,9 @@ spring:
 
 # mysql database configurations 5432 root
   datasource:
-    url: jdbc:postgresql://localhost:5432/chat
+    url: jdbc:postgresql://localhost:3308/chat
     username: postgres
-    password: root
+    password: root123
 
 # Hibernate configurations
   jpa:
@@ -21,8 +21,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   
   
-
-
 springdoc:
   api-docs:
     enabled: true
@@ -41,6 +39,12 @@ springdoc:
 chat:
   frontend:
     url: http://localhost:3000
+  kafka:
+    url: localhost:9092
+    single: single_chat_messages
+    group: group_chat_messages
+
+
 
 
 # cloudinary  configurations

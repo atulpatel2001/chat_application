@@ -253,8 +253,14 @@ public class ContactServiceImple implements ContactService {
                              .user(user2.get())
                              .build();
 
+
+
+
                      chatParticipantRepository.save(firstParticipant);
                      chatParticipantRepository.save(secondParticipant);
+                    ChatMessage chatRoomCreated = ChatMessage.builder().message("No messages yet").chatRoom(save).senderId(user2.get()).receiverId(user.get()).timestamp(LocalDateTime.now()).build();
+                    chatMessageRepository.save(chatRoomCreated);
+
                  }
                 return true;
             }else {
