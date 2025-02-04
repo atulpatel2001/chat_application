@@ -56,7 +56,7 @@ public class Contact extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "contactUserId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contact_user_id")
     private User contactUserId;
 }

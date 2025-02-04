@@ -31,12 +31,7 @@ public class ChatController {
     @Autowired
     private  ChatMessageService chatMessageService;
 
-    @Value("${chat.kafka.single}")
-    private String topic;
-    @Autowired
-    private MessageProducer messageProducer;
-    @Autowired
-    private UserRepository userRepository;
+
     @GetMapping("/get-chats")
     public ResponseEntity<?> getChatsBetweenUser(@RequestParam("contactId") Long contactId, Authentication authentication){
 
@@ -67,15 +62,5 @@ public class ChatController {
         }
     }
 
-    @MessageMapping("/chat.sendMessage")
-    public String sendMessage(@RequestBody KafkaMessageDto message, Authentication authentication) {
-        String username = Helper.getEmailOfLoggedInUser(authentication);
-        User user = this.userRepository.findByEmail(username).orElseThrow(
-                ()-> new ResourceNotFoundException("User", "Email Id", username)
-        );
-        message.setSenderId(user.getId());
-        message.setTimestamp(LocalDateTime.now().toString());
-        messageProducer.sendMessage(topic, message);
-        return "Message sent: " + message;
-    }
+
 }

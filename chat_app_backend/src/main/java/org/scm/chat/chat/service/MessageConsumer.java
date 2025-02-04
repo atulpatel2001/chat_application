@@ -3,9 +3,11 @@ package org.scm.chat.chat.service;
 import com.nimbusds.jose.shaded.gson.JsonElement;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
+import org.scm.chat.chat.dto.KafkaMessageDto;
 import org.scm.chat.chat.model.ChatMessage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.security.core.Authentication;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -14,9 +16,16 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class MessageConsumer {
 
+     @Autowired
+    private  SimpMessagingTemplate messagingTemplate;
+
+
     @KafkaListener(topics = "single_chat_messages", groupId = "chat_app")
     public void listen(String message) {
         System.out.println("Received message: " + message);
+        JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
+        String chatRoomId = jsonObject.get("chatRoomId").getAsString();
+        messagingTemplate.convertAndSend("/topic/public/"+chatRoomId, message);
         saveMessage(message, "single");
     }
 
@@ -24,15 +33,13 @@ public class MessageConsumer {
 
 
     private void saveMessage(String message, String chatType) {
-        // Parse the message (assuming it's in JSON format)
-        // Example: {"sender": "user1", "content": "Hello", "chatId": "123"}
         JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
         String sender = jsonObject.get("senderId").getAsString();
         String chatRoomId = jsonObject.get("chatRoomId").getAsString();
         String content = jsonObject.get("message").getAsString();
         String receiverId = jsonObject.get("receiverId").getAsString();
         String status = jsonObject.get("status").getAsString();
-        JsonElement jsonElement = JsonParser.parseString( jsonObject.get("timestamp").getAsString()).getAsJsonObject().get("timestamp");
+        JsonElement jsonElement = jsonObject.get("timestamp");
         String timestampStr = jsonElement.getAsString();
 
         // Convert String to LocalDateTime

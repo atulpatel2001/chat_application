@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   UserCircleIcon,
   PhoneIcon,
@@ -12,13 +12,16 @@ import {
 import { ChatDisplayDto } from "@/app/model/ChatDisplayDto";
 import { getChatsForDisplay, getMessageByGroupId } from "@/app/services/chat/ChatService";
 import { useDispatch } from "react-redux";
-import { logout } from "@/app/redux/slice/authSlice";
+import { logout, User } from "@/app/redux/slice/authSlice";
 import { toast } from "react-toastify";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/component/Navbar";
 import { getContactsById } from "@/app/services/contact/ContactService";
 import { ChatMessageDto } from "@/app/model/Message";
 import StompClientUtil from "@/app/services/chat/WebSocketService";
+import { StompHeaders } from "@stomp/stompjs";
+import { getToken, getUserDetail } from "@/app/services/TokenService";
+import { stringToChatDisplayFormate } from "@/app/util/DateFormate";
 
 
 export default function ChatPage() {
@@ -32,6 +35,10 @@ export default function ChatPage() {
 
   });
 
+  const [user, setUser] = useState<User>({
+    id: "",
+    email: "",
+  })
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [input, setInput] = useState("");
   const [displayData, setDisplayData] = useState<ChatDisplayDto[]>([]);
@@ -39,106 +46,139 @@ export default function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
-  let baseUrl="http://localhost:8081/chat-websocket";
+  let baseUrl = "http://localhost:8081/chat-websocket";
 
   const stompClient = new StompClientUtil(baseUrl);
-
+  // const data = localStorage.getItem("Chat_User");
+  // const user2: User = JSON.parse(data || "");
+  const [isTyping, setIsTyping] = useState<boolean>(false); 
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
+    if (!id) return;
 
-    if (id) {
-      const fetchData = async () => {
-
+    const fetchData = async () => {
+      try {
         const response = await getChatsForDisplay(id);
         if (response?.success) {
           console.log(response.message);
           setDisplayData(response.message.chatDisplayDtos);
           setSelectedChat(response.message.singleEmployee);
           setMessages(response.message.chatMessageDtos);
-
-        } else {
-          if (response?.status == 401) {
-            dispatch(logout());
-            toast.error(response.message, {
-              style: {
-                fontSize: '15px',
-                fontWeight: 'bold',
-                width: '400px',
-              },
-            });
-            router.push("/chat/login");
-          }
+        } else if (response?.status === 401) {
+          handleUnauthorized(response.message);
         }
-
-
+      } catch (error) {
+        console.error("Error fetching chat data:", error);
       }
-      const getContactData = async () => {
+    };
+
+    const getContactData = async () => {
+      try {
         const response = await getContactsById(id);
-
-        if (response?.success) {
-
-        } else {
-          if (response?.status == 401) {
-            dispatch(logout());
-            toast.error(response.message, {
-              style: {
-                fontSize: '15px',
-                fontWeight: 'bold',
-                width: '400px',
-              },
-            });
-
-            router.push("/chat/login");
-
-          } else {
-            toast.error(response?.message, {
-              style: {
-                fontSize: '15px',
-                fontWeight: 'bold',
-                width: '400px',
-              },
-            });
-
-          }
-
+        if (!response?.success && response?.status === 401) {
+          handleUnauthorized(response.message);
+        } else if (!response?.success) {
+          toastError(response?.message);
         }
+      } catch (error) {
+        console.error("Error fetching contact data:", error);
       }
-      getContactData();
-      fetchData();
+    };
 
-      stompClient.connect(
-        () => console.log("Connected to WebSocket"),
-        (error) => console.error("WebSocket connection error:", error)
-      );
-  
-      stompClient.subscribe("/topic", (message) => {
-        //setMessages((prev) => [...prev, message]);
-        console.log(message);
+    const handleUnauthorized = (message: string) => {
+      dispatch(logout());
+      toastError(message);
+      router.push("/chat/login");
+    };
+
+    const toastError = (message: string) => {
+      toast.error(message, {
+        style: { fontSize: "15px", fontWeight: "bold", width: "400px" },
       });
-  
-      // return () => {
-      //   stompClient.disconnect();
-      // };
-     
-     
+    };
+    const getUserData = async () => {
+      let user2: User = await getUserDetail();
+      setUser(user2);
     }
+  
+
+    const initialize = async () => {
+      await getUserData();
+      await Promise.all([fetchData(), getContactData()]);
+    };
+
+    initialize();
   }, [id]);
 
 
+
+  useEffect(() => {
+    if (!selectedChat?.roomId) return;
+
+    const initializeWebSocket = () => {
+      stompClient.connect(
+        () => {
+          console.log("Connected to WebSocket");
+          stompClient.subscribeToUserQueue("/topic/public/" + selectedChat.roomId, (message) => {
+
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: message.id || "",
+                chatRoomId: message.chatRoomId || selectedChat.roomId,
+                senderId: message.senderId || "",
+                receiverId: message.receiverId || selectedChat.userId,
+                message: message.message || "",
+                status: message.status || "RECEIVED",
+                timestamp: stringToChatDisplayFormate(message.timestamp) || "NOW",
+                sender: user.id === message.senderId ? "You" : "Sender",
+              },
+            ]);
+
+            console.log(user.id + " user.id");
+            console.log(message.senderId + " message.senderId");
+          });
+        },
+        (error) => console.error("WebSocket connection error:", error)
+      );
+    };
+
+    initializeWebSocket();
+  }, [selectedChat]);
+
+
+ 
+
   const sendMessage = () => {
     if (input.trim() === "") return;
-     setMessages([...messages, { sender: "You", message: input, timestamp: "Now", status: 'SENT',chatRoomId:selectedChat.roomId,id:'',senderId:'',receiverId:selectedChat.userId }]);
-     setInput("");
-     
-      stompClient.sendMessage("/app/chat/with/chat.sendMessage", { chatRoomId:selectedChat.roomId, receiverId:selectedChat.userId, message: input, status: 'SENT', senderId: '', timestamp: '' });
-  
-    // if (client !== null) {
-    // }
+    stompClient.connect(
+      () => {
+        console.log("Connected to WebSocket");
+        stompClient.sendMessage(
+          "/app/chat.sendMessage",
+          {
+            chatRoomId: selectedChat.roomId,
+            receiverId: selectedChat.userId,
+            message: input,
+            status: "SENT",
+            senderId: user.id,
+            timestamp: "",
+          },
+          {
+            Authorization: "Bearer " + getToken(), // ✅ JWT Authentication
+          } as StompHeaders // ✅ Ensure TypeScript knows this is StompHeaders
+        );
+      },
+      (error) => console.error("WebSocket connection error:", error)
+    );
+
+    setInput("");
   };
 
 
+
+
   const handleChageContact = async (roomId: string, contact: ChatDisplayDto) => {
-
-
     const response = await getMessageByGroupId(roomId);
     if (response?.success) {
       console.log(response.message);
@@ -159,6 +199,22 @@ export default function ChatPage() {
     }
   }
 
+
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true);  // Set typing state to true if user starts typing
+      // stompClient.send('/app/typing', {}, JSON.stringify({ userId: currentUser.id, chatRoomId }));
+    }
+
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+    typingTimeout.current = setTimeout(() => {
+      setIsTyping(false);  // Stop typing notification after 2 seconds
+      // stompClient.send('/app/typing', {}, JSON.stringify({ userId: currentUser.id, chatRoomId, typing: false }));
+    }, 2000);
+  };
   return (
     <>
       <Navbar />

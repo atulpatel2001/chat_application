@@ -108,8 +108,8 @@ public class ChatMessageServiceImple implements ChatMessageService {
 
                 for (Object[] data : latestMessagesForLoggedInUser) {
                     ChatDisplayDto chatDisplayDto = new ChatDisplayDto();
-                    chatDisplayDto.setRoomId((Long) data[1]);
-                    chatDisplayDto.setUserId(data[0].toString());
+                    chatDisplayDto.setRoomId((Long) data[0]);
+                    chatDisplayDto.setUserId(data[1].toString());
                     chatDisplayDto.setName(data[2].toString());
                     chatDisplayDto.setEmail(data[3].toString());
                     chatDisplayDto.setProfilePic(data[4].toString());
