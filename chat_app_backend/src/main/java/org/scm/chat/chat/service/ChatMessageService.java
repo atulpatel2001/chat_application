@@ -1,6 +1,5 @@
 package org.scm.chat.chat.service;
 
-import org.scm.chat.chat.dto.ChatDisplayDto;
 import org.scm.chat.chat.dto.ChatMessageDto;
 import org.scm.chat.chat.dto.UserChatContactData;
 

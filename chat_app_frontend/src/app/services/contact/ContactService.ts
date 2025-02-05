@@ -26,12 +26,6 @@ export const addContact = async (contactData: Contact) => {
         };
 
         formData.append("contactDto", new Blob([JSON.stringify(contactDto)], { type: "application/json" }));
-        console.log(contactDto);
-        // if (userData.userImage) {
-        //     formData.append("userImage", userData.userImage);
-        // }
-
-        // const defaultImage = new File([""], "/user_img3.png", { type: "image/png" });
         const defaultImage= await fetchDefaultImageAsFile("user_img3.png")
         if (contactData.contact_image== null) {
             console.log(defaultImage+" default image")
@@ -47,7 +41,7 @@ export const addContact = async (contactData: Contact) => {
             }
         });
 
-        console.log(response.data)
+        //console.log(response.data)
 
         return {
             success: true,
@@ -58,7 +52,7 @@ export const addContact = async (contactData: Contact) => {
         if (axios.isAxiosError(error)) {
             if (error != undefined) {
 
-                console.log(error.response);
+               // console.log(error.response);
 
                 if (error.response?.status === 416) {
                     return {
@@ -104,7 +98,7 @@ export const getContacts = async () => {
             }
         });
 
-        console.log(response.data)
+        //console.log(response.data)
 
         return {
             success: true,
@@ -145,7 +139,7 @@ export const getContactsById = async (id:string) => {
             }
         });
 
-        console.log(response.data)
+      // console.log(response.data)
 
         return {
             success: true,
@@ -212,7 +206,7 @@ export const updateContact = async (contactData: Contact,id:string) => {
             }
         });
 
-        console.log(response.data)
+       // console.log(response.data)
 
         return {
             success: true,
@@ -268,7 +262,7 @@ export const deleteContactsById = async (id:string) => {
             }
         });
 
-        console.log(response.data)
+       // console.log(response.data)
 
         return {
             success: true,
@@ -309,7 +303,7 @@ export const isApplicableContactsById = async (id:string) => {
             }
         });
 
-        console.log(response.data)
+       // console.log(response.data)
 
         return {
             success: true,

@@ -41,22 +41,26 @@ public class MessageController {
     @Autowired
     private UserRepository  userRepository;
 
+
+
+
     @MessageMapping("/chat.sendMessage")
 //    @SendTo("/topic/public")
-    public void sendMessage(@RequestBody KafkaMessageDto message) throws JsonProcessingException {
+    public void sendMessage(@RequestBody KafkaMessageDto message){
         message.setTimestamp(LocalDateTime.now().toString());
+        messagingTemplate.convertAndSend("/topic/public/"+message.getChatRoomId(), message);
         messageProducer.sendMessage(topic, message);
     }
 
 
-    @MessageMapping("/typing")
-    @SendTo("/topic/public/typing")
-    public void typing(@Payload TypingMessage typingMessage, SimpMessageHeaderAccessor headerAccessor) {
+    @MessageMapping("/chat.sendTyping")
+//    @SendTo("/topic/public/typing")
+    public void typing(@Payload TypingMessage typingMessage) {
 
-         User user = this.userRepository.findByEmail(typingMessage.getUserId()).orElseThrow(() ->
+         User user = this.userRepository.findById(typingMessage.getUserId()).orElseThrow(() ->
                 new ResourceNotFoundException("User", "user Id", typingMessage.getUserId()));
-
-        messagingTemplate.convertAndSend("/topic/typing/" + typingMessage.getChatRoomId(),
-                new TypingNotification(typingMessage.getUserId(),user.getName() , typingMessage.getChatRoomId(),typingMessage.isTyping()));
+        System.out.println("Typing message: " + typingMessage.toString());
+        messagingTemplate.convertAndSend("/topic/public/typing/" + typingMessage.getChatRoomId(),
+                new TypingNotification(typingMessage.getUserId(), typingMessage.getChatRoomId(),user.getName(),typingMessage.isTyping()));
     }
 }

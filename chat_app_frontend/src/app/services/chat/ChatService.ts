@@ -14,7 +14,7 @@ export const getChatsForDisplay = async (id: string) => {
             }
         });
 
-        console.log(response.data)
+        //console.log(response.data)
 
         return {
             success: true,

@@ -54,8 +54,8 @@ public class ChatMessageServiceImple implements ChatMessageService {
             if (!result.isEmpty()) {
                 Object[] chatsBetweenUsersDesc = result.get(0);
                 ChatDisplayDto chatDisplayDto = new ChatDisplayDto();
-                chatDisplayDto.setUserId(chatsBetweenUsersDesc[0].toString());
-                chatDisplayDto.setRoomId((Long) chatsBetweenUsersDesc[1]);
+                chatDisplayDto.setRoomId((Long) chatsBetweenUsersDesc[0]);
+                chatDisplayDto.setUserId(chatsBetweenUsersDesc[1].toString());
                 chatDisplayDto.setName(chatsBetweenUsersDesc[2].toString());
                 chatDisplayDto.setEmail(chatsBetweenUsersDesc[3].toString());
                 chatDisplayDto.setProfilePic(chatsBetweenUsersDesc[4].toString());

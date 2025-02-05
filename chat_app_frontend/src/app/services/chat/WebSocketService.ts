@@ -9,7 +9,7 @@ export default class StompClientUtil {
     this.socketUrl = socketUrl;
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(this.socketUrl),
-      debug: (msg: string) => console.log(msg),
+      // debug: (msg: string) => console.log(msg),
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
       heartbeatOutgoing: 4000,
@@ -70,6 +70,23 @@ export default class StompClientUtil {
     }
   }
 
+
+  subscribeForTyping(userQueueDestination: string, callback: (message: IMessage) => void) {
+    if (!this.stompClient || !this.stompClient.connected) {
+      console.warn("⚠️ STOMP client is not connected yet. Retrying...");
+      setTimeout(() => this.subscribeToUserQueue(userQueueDestination, callback), 1000);
+      return;
+    }
+
+    this.stompClient.subscribe(userQueueDestination, (message) => {
+      console.log(message+"GET MESSAGE")
+      callback(JSON.parse(message.body)); // Handle the message here
+    });
+  }
+
+  isConnected(): boolean {
+    return this.stompClient.active;
+  }
   disconnect() {
     this.stompClient.deactivate();
     console.log("Disconnected from STOMP");

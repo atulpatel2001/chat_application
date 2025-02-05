@@ -39,6 +39,8 @@ export default function ChatPage() {
     id: "",
     email: "",
   })
+
+  const [token, setToken] = useState("");
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [input, setInput] = useState("");
   const [displayData, setDisplayData] = useState<ChatDisplayDto[]>([]);
@@ -49,9 +51,12 @@ export default function ChatPage() {
   let baseUrl = "http://localhost:8081/chat-websocket";
 
   const stompClient = new StompClientUtil(baseUrl);
+
+  // const stompClientRef = useRef(new StompClientUtil(baseUrl));
+
   // const data = localStorage.getItem("Chat_User");
   // const user2: User = JSON.parse(data || "");
-  const [isTyping, setIsTyping] = useState<boolean>(false); 
+  const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (!id) return;
@@ -100,10 +105,16 @@ export default function ChatPage() {
       let user2: User = await getUserDetail();
       setUser(user2);
     }
-  
+                                                                                                                                                                    
+    const getTokenByUser = async () => {
+      const token = await getToken();
+      setToken(token || "");
+    }
+
 
     const initialize = async () => {
       await getUserData();
+      await getTokenByUser();
       await Promise.all([fetchData(), getContactData()]);
     };
 
@@ -111,43 +122,54 @@ export default function ChatPage() {
   }, [id]);
 
 
-
   useEffect(() => {
     if (!selectedChat?.roomId) return;
+    const handleMessage = (message: any) => {
+      console.log("message--->"+message);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: message.id || "",
+          chatRoomId: message.chatRoomId || selectedChat.roomId,
+          senderId: message.senderId || "",
+          receiverId: message.receiverId || selectedChat.userId,
+          message: message.message || "",
+          status: message.status || "SENT",
+          timestamp: stringToChatDisplayFormate(message.timestamp) || "NOW",
+          sender: user.id === message.senderId ? "You" : "Sender",
+        },
+      ]);
+    };
 
+    const handleTyping_=(message:any)=>{
+      console.log("Typing message--->"+message);
+      if(user.id !== message.userId){
+        setIsTyping(message.typing);
+      }
+    }
     const initializeWebSocket = () => {
       stompClient.connect(
         () => {
-          console.log("Connected to WebSocket");
-          stompClient.subscribeToUserQueue("/topic/public/" + selectedChat.roomId, (message) => {
-
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: message.id || "",
-                chatRoomId: message.chatRoomId || selectedChat.roomId,
-                senderId: message.senderId || "",
-                receiverId: message.receiverId || selectedChat.userId,
-                message: message.message || "",
-                status: message.status || "RECEIVED",
-                timestamp: stringToChatDisplayFormate(message.timestamp) || "NOW",
-                sender: user.id === message.senderId ? "You" : "Sender",
-              },
-            ]);
-
-            console.log(user.id + " user.id");
-            console.log(message.senderId + " message.senderId");
+          stompClient.subscribeToUserQueue("/topic/public/" + selectedChat.roomId, (messages) => {
+            handleMessage(messages);
           });
+          stompClient.subscribeForTyping("/topic/public/typing/" + selectedChat.roomId, (messages) => {
+            handleTyping_(messages);
+          });
+
         },
         (error) => console.error("WebSocket connection error:", error)
       );
     };
 
     initializeWebSocket();
+
+    return () => {
+      stompClient.disconnect();
+    };
   }, [selectedChat]);
 
 
- 
 
   const sendMessage = () => {
     if (input.trim() === "") return;
@@ -165,8 +187,8 @@ export default function ChatPage() {
             timestamp: "",
           },
           {
-            Authorization: "Bearer " + getToken(), // ✅ JWT Authentication
-          } as StompHeaders // ✅ Ensure TypeScript knows this is StompHeaders
+            Authorization: "Bearer " + token,
+          } as StompHeaders
         );
       },
       (error) => console.error("WebSocket connection error:", error)
@@ -183,6 +205,7 @@ export default function ChatPage() {
     if (response?.success) {
       console.log(response.message);
       setSelectedChat(contact);
+      setIsTyping(false);
       setMessages(response.message);
     } else {
       if (response?.status == 401) {
@@ -201,20 +224,53 @@ export default function ChatPage() {
 
 
   const handleTyping = () => {
+    if (input.trim() === "") return;
     if (!isTyping) {
-      setIsTyping(true);  // Set typing state to true if user starts typing
-      // stompClient.send('/app/typing', {}, JSON.stringify({ userId: currentUser.id, chatRoomId }));
-    }
+      stompClient.connect(
+        () => {
+          console.log("Connected to WebSocket");
+          stompClient.isAnyOneIsTyping(
+            "/app/chat.sendTyping",
+            {
+              chatRoomId: selectedChat.roomId,
+              userId: user.id,
+              typing: true,
+            },
+            {
+              Authorization: "Bearer " + token,
+            } as StompHeaders
+          );
+        },
+        (error) => console.error("WebSocket connection error:", error)
+      );   
+     }
 
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-
+  
+    
+  
     typingTimeout.current = setTimeout(() => {
-      setIsTyping(false);  // Stop typing notification after 2 seconds
-      // stompClient.send('/app/typing', {}, JSON.stringify({ userId: currentUser.id, chatRoomId, typing: false }));
-    }, 2000);
+      console.log("time out")
+      stompClient.isAnyOneIsTyping(
+        "/app/chat.sendTyping",
+        {
+          chatRoomId: selectedChat.roomId,
+          userId: user.id,
+          typing: false,
+        },
+        {
+          Authorization: "Bearer " + token,
+        } as StompHeaders
+      );  
+    }, 10000);
+    return () => {
+      stompClient.disconnect();
+    };
   };
+
+
   return (
     <>
       <Navbar />
@@ -293,14 +349,19 @@ export default function ChatPage() {
           </div>
 
           {/* Chat Input */}
+          {isTyping && ( <p className="ml-3 text-green-500" style={{fontWeight:'bold'}}>Typing</p>   )}
           <div className="p-4 flex items-center bg-gray-100 border-t shadow-md">
+            
             <FaceSmileIcon className="w-6 h-6 text-gray-500 cursor-pointer" />
             <input
               type="text"
               className="flex-1 p-2 mx-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Type a message..."
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => {
+                setInput(e.target.value);
+                handleTyping();
+              }}
               onKeyPress={(e) => e.key === "Enter" && sendMessage()}
             />
             <PaperClipIcon className="w-6 h-6 text-gray-500 cursor-pointer" />
