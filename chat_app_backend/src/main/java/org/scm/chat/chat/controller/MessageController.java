@@ -1,10 +1,12 @@
 package org.scm.chat.chat.controller;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import org.scm.chat.chat.dto.ChatStatusUpdateDto;
 import org.scm.chat.chat.dto.KafkaMessageDto;
 import org.scm.chat.chat.dto.TypingMessage;
 import org.scm.chat.chat.dto.TypingNotification;
+import org.scm.chat.chat.model.ChatMessage;
+import org.scm.chat.chat.repository.ChatMessageRepository;
 import org.scm.chat.chat.service.MessageProducer;
 import org.scm.chat.exception.ResourceNotFoundException;
 import org.scm.chat.user.model.User;
@@ -14,8 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,16 +39,17 @@ public class MessageController {
     private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    private UserRepository  userRepository;
+    private UserRepository userRepository;
 
-
+    @Autowired
+    private ChatMessageRepository chatMessageRepository;
 
 
     @MessageMapping("/chat.sendMessage")
 //    @SendTo("/topic/public")
-    public void sendMessage(@RequestBody KafkaMessageDto message){
+    public void sendMessage(@RequestBody KafkaMessageDto message) {
         message.setTimestamp(LocalDateTime.now().toString());
-        messagingTemplate.convertAndSend("/topic/public/"+message.getChatRoomId(), message);
+        messagingTemplate.convertAndSend("/topic/public/" + message.getChatRoomId(), message);
         messageProducer.sendMessage(topic, message);
     }
 
@@ -57,10 +58,26 @@ public class MessageController {
 //    @SendTo("/topic/public/typing")
     public void typing(@Payload TypingMessage typingMessage) {
 
-         User user = this.userRepository.findById(typingMessage.getUserId()).orElseThrow(() ->
+        User user = this.userRepository.findById(typingMessage.getUserId()).orElseThrow(() ->
                 new ResourceNotFoundException("User", "user Id", typingMessage.getUserId()));
-        System.out.println("Typing message: " + typingMessage.toString());
+        System.out.println("Typing message: " + typingMessage);
         messagingTemplate.convertAndSend("/topic/public/typing/" + typingMessage.getChatRoomId(),
-                new TypingNotification(typingMessage.getUserId(), typingMessage.getChatRoomId(),user.getName(),typingMessage.isTyping()));
+                new TypingNotification(typingMessage.getUserId(), typingMessage.getChatRoomId(), user.getName(), typingMessage.isTyping()));
     }
+
+
+    @MessageMapping("/chat.updateStatus")
+    //@SendTo("/topic/message-status")
+    public void updateMessageStatus(@Payload ChatStatusUpdateDto messageDto) {
+        try {
+            chatMessageRepository.updateMessageStatus(messageDto.getChatRoomId(), messageDto.getUserId(), messageDto.getStatus().equalsIgnoreCase("READ")? ChatMessage.MessageStatus.READ: ChatMessage.MessageStatus.DELIVERED);
+
+            messagingTemplate.convertAndSend("/topic/public/status/update" + messageDto.getChatRoomId(),
+                    messageDto);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

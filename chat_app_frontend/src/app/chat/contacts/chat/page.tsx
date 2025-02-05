@@ -141,6 +141,25 @@ export default function ChatPage() {
       ]);
     };
 
+    const handleStatusMessageUpdate=(message:any)=>{
+      if (message.receiverId === user.id) {
+        stompClient.updateMessageStatus(
+          "/app/chat.updateStatus",
+          { chatRoomId: selectedChat.roomId,userId:user.id, status: "DELIVERED" },
+          {
+            Authorization: "Bearer " + token,
+          } as StompHeaders
+        );
+
+        //use for call status update 
+        stompClient.subscribeForTyping("/topic/public/status/update/"+selectedChat.roomId,(messages)=>{
+           console.log(messages);
+        });
+      }
+    
+      // setMessages((prev) => [...prev, receivedMessage]);
+    }
+
     const handleTyping_=(message:any)=>{
       console.log("Typing message--->"+message);
       if(user.id !== message.userId){
@@ -152,6 +171,7 @@ export default function ChatPage() {
         () => {
           stompClient.subscribeToUserQueue("/topic/public/" + selectedChat.roomId, (messages) => {
             handleMessage(messages);
+            handleStatusMessageUpdate(messages);
           });
           stompClient.subscribeForTyping("/topic/public/typing/" + selectedChat.roomId, (messages) => {
             handleTyping_(messages);
@@ -264,7 +284,7 @@ export default function ChatPage() {
           Authorization: "Bearer " + token,
         } as StompHeaders
       );  
-    }, 10000);
+    }, 5000);
     return () => {
       stompClient.disconnect();
     };

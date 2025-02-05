@@ -60,7 +60,7 @@ public class HomeController {
     @PostMapping({"/register","/signup"})
     public ResponseEntity<?> createUser(@Valid @RequestBody UserDto userDto) {
         try {
-            boolean isRegistered = this.userService.registerUser(null);
+            boolean isRegistered = this.userService.registerUser(userDto);
 
             if (isRegistered) {
                 return ResponseEntity.status(HttpStatus.CREATED).body(new ResponseDto(UserConstant.STATUS_201, UserConstant.MESSAGE_201));

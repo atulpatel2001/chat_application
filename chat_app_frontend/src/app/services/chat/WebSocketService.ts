@@ -84,6 +84,20 @@ export default class StompClientUtil {
     });
   }
 
+
+  updateMessageStatus(destination: string, payload: object, headers: StompHeaders = {}) {
+    if (this.stompClient && this.stompClient.active) {
+      this.stompClient.publish({
+        destination,
+        headers,
+        body: JSON.stringify(payload),
+      });
+    } else {
+      console.warn("STOMP client is not connected. Retrying...");
+      setTimeout(() => this.sendMessage(destination, payload, headers), 1000);
+    }
+  }
+  
   isConnected(): boolean {
     return this.stompClient.active;
   }

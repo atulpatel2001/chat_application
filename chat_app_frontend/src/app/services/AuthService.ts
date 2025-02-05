@@ -4,6 +4,7 @@ import axios from "axios";
 
 import { login_, User } from "../redux/slice/authSlice";
 import { AppDispatch } from "../redux/store/store";
+import { Console } from "console";
 
 export interface LoginResponse {
   access_token: string;
@@ -31,6 +32,7 @@ export const signin = async (data: UserForm) => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response) {
+        console.log(error.response)
         const { status, data } = error.response;
         console.log(data + "" + status)
         if (status === 400) {

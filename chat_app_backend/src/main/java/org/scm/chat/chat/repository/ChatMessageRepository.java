@@ -1,39 +1,16 @@
 package org.scm.chat.chat.repository;
 
+import jakarta.transaction.Transactional;
 import org.scm.chat.chat.model.ChatMessage;
 import org.scm.chat.user.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-
-    @Query("""
-                SELECT cm 
-                FROM ChatMessage cm 
-                WHERE 
-                    (cm.senderId = :loggedInUserId AND cm.receiverId = :otherUserId) OR 
-                    (cm.senderId = :otherUserId AND cm.receiverId = :loggedInUserId)
-                ORDER BY cm.createdAt ASC
-            """)
-    List<ChatMessage> findChatsBetweenUsers(@Param("loggedInUserId") User loggedInUserId,
-                                            @Param("otherUserId") User otherUserId);
-
-
-    @Query("""
-                SELECT cm 
-                FROM ChatMessage cm 
-                WHERE 
-                    (cm.senderId.id = :loggedInUserId AND cm.receiverId.id = :otherUserId) OR 
-                    (cm.senderId.id = :otherUserId AND cm.receiverId.id = :loggedInUserId)
-                ORDER BY cm.createdAt desc
-            """)
-    List<ChatMessage> findChatsBetweenUsersDesc(@Param("loggedInUserId") String loggedInUserId,
-                                                @Param("otherUserId") String otherUserId);
-
-
     /* @Query(value = "SELECT DISTINCT u.id,g.id, u.user_name, u.email, u.profile_picture, m.content, m.timestamp\n" +
              "FROM chat_participants gm\n" +
              "JOIN chat_rooms g ON gm.chat_room_id = g.id\n" +
@@ -122,4 +99,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                                                           @Param("selectedUser") String selectedUser);
 
     List<ChatMessage> findByChatRoomIdOrderByCreatedAtAsc(Long chatRoomId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ChatMessage m SET m.status = :status WHERE m.chatRoom.id = :roomId AND m.receiverId.id = :userId")
+    void updateMessageStatus(@Param("roomId") String roomId, @Param("userId") String userId, @Param("status") ChatMessage.MessageStatus status);
 }
