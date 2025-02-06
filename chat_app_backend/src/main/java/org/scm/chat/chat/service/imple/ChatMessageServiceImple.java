@@ -77,9 +77,11 @@ public class ChatMessageServiceImple implements ChatMessageService {
                     for (ChatMessage chatMessage : chatMessageList) {
                         ChatMessageDto chatMessageDto = new ChatMessageDto();
                         chatMessageDto.setId(chatMessage.getId().toString());
+                        chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
                         chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
                         chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
                         chatMessageDto.setMessage(chatMessage.getMessage());
+                        chatMessageDto.setStatus(chatMessage.getStatus());
 
 
                         String formattedDate2;
@@ -142,6 +144,83 @@ public class ChatMessageServiceImple implements ChatMessageService {
     }
 
     @Override
+    public UserChatContactData getChatParticipantsInSeparatePage(String loggedInUserId) {
+        UserChatContactData userChatContactData = new UserChatContactData();
+        try {
+            Optional<User> loginUser = this.userRepository.findByEmail(loggedInUserId);
+            List<Object[]> latestMessagesForLoggedInUser = this.chatMessageRepository.findLatestMessagesForLoggedInUser(loginUser.get().getId());
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+            List<ChatDisplayDto> list = new ArrayList<>();
+            if (!latestMessagesForLoggedInUser.isEmpty()) {
+
+                for (Object[] data : latestMessagesForLoggedInUser) {
+                    ChatDisplayDto chatDisplayDto = new ChatDisplayDto();
+                    chatDisplayDto.setRoomId((Long) data[0]);
+                    chatDisplayDto.setUserId(data[1].toString());
+                    chatDisplayDto.setName(data[2].toString());
+                    chatDisplayDto.setEmail(data[3].toString());
+                    chatDisplayDto.setProfilePic(data[4].toString());
+
+                    chatDisplayDto.setLastMessage(data[5].toString());
+                    String formattedDate;
+                    if (data[6] instanceof Timestamp) {
+                        formattedDate = ((Timestamp) data[6]).toLocalDateTime().format(formatter);
+                    } else if (data[6] instanceof LocalDateTime) {
+                        formattedDate = ((LocalDateTime) data[6]).format(formatter);
+                    } else {
+                        formattedDate = data[6] != null ? data[6].toString() : "";
+                    }
+                    chatDisplayDto.setLastMessageTime(formattedDate);
+
+                    list.add(chatDisplayDto);
+
+                }
+                userChatContactData.setChatDisplayDtos(list);
+                 ChatDisplayDto chatDisplayDto = list.get(0);
+                 userChatContactData.setSingleEmployee(chatDisplayDto);
+                List<ChatMessage> chatMessageList = this.chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(chatDisplayDto.getRoomId());
+                List<ChatMessageDto> list2 = new ArrayList<>();
+                if (!chatMessageList.isEmpty()) {
+                    for (ChatMessage chatMessage : chatMessageList) {
+                        ChatMessageDto chatMessageDto = new ChatMessageDto();
+                        chatMessageDto.setId(chatMessage.getId().toString());
+                        chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
+                        chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
+                        chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
+                        chatMessageDto.setMessage(chatMessage.getMessage());
+                        chatMessageDto.setStatus(chatMessage.getStatus());
+
+
+                        String formattedDate2;
+                        if (chatMessage.getTimestamp() != null) {
+                            formattedDate2 = chatMessage.getTimestamp().format(formatter);
+                            chatMessageDto.setTimestamp(formattedDate2);
+                        } else {
+                            chatMessageDto.setTimestamp("");
+                        }
+                        chatMessageDto.setSender(chatMessage.getSenderId().getId().equalsIgnoreCase(loginUser.get().getId()) ? "You" : chatMessage.getSenderId().getName());
+                        list2.add(chatMessageDto);
+                    }
+
+                    userChatContactData.setChatMessageDtos(list2);
+
+                }
+                else {
+                    userChatContactData.setChatMessageDtos(null);
+                }
+            } else {
+                userChatContactData.setChatDisplayDtos(List.of());
+            }
+
+            return userChatContactData;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Override
     public List<ChatMessageDto> getChatMessages(Long roomId, String loggedInUserId) {
         User user = this.userRepository.findByEmail(loggedInUserId).orElseThrow(
                 () -> new ResourceNotFoundException("User", "Email", loggedInUserId)
@@ -154,9 +233,46 @@ public class ChatMessageServiceImple implements ChatMessageService {
                 ChatMessageDto chatMessageDto = new ChatMessageDto();
                 chatMessageDto.setId(chatMessage.getId().toString());
                 chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
+                chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
                 chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
                 chatMessageDto.setMessage(chatMessage.getMessage());
+                chatMessageDto.setStatus(chatMessage.getStatus());
 
+                String formattedDate;
+                if (chatMessage.getTimestamp() != null) {
+                    formattedDate = chatMessage.getTimestamp().format(formatter);
+                    chatMessageDto.setTimestamp(formattedDate);
+                } else {
+                    chatMessageDto.setTimestamp("");
+                }
+                chatMessageDto.setSender(chatMessage.getSenderId().getId().equalsIgnoreCase(user.getId()) ? "You" : chatMessage.getSenderId().getName());
+                list.add(chatMessageDto);
+            }
+
+            return list;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    @Override
+    public List<ChatMessageDto> getChatMessagesBuyUserId(Long roomId, String loggedInUserId) {
+        User user = this.userRepository.findById(loggedInUserId).orElseThrow(
+                () -> new ResourceNotFoundException("User", "UserId", loggedInUserId)
+        );
+        try {
+            List<ChatMessage> chatMessageList = this.chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
+            List<ChatMessageDto> list = new ArrayList<>();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+            for (ChatMessage chatMessage : chatMessageList) {
+                ChatMessageDto chatMessageDto = new ChatMessageDto();
+                chatMessageDto.setId(chatMessage.getId().toString());
+                chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
+                chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
+                chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
+                chatMessageDto.setMessage(chatMessage.getMessage());
+                chatMessageDto.setStatus(chatMessage.getStatus());
 
                 String formattedDate;
                 if (chatMessage.getTimestamp() != null) {

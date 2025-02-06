@@ -19,7 +19,7 @@ import Navbar from "@/app/component/Navbar";
 import { getContactsById } from "@/app/services/contact/ContactService";
 import { ChatMessageDto } from "@/app/model/Message";
 import StompClientUtil from "@/app/services/chat/WebSocketService";
-import { StompHeaders } from "@stomp/stompjs";
+import { IMessage, StompHeaders } from "@stomp/stompjs";
 import { getToken, getUserDetail } from "@/app/services/TokenService";
 import { stringToChatDisplayFormate } from "@/app/util/DateFormate";
 
@@ -47,11 +47,11 @@ export default function ChatPage() {
   const dispatch = useDispatch()
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get('id');
+  const id = searchParams.get('id') || 'no';
   let baseUrl = "http://localhost:8081/chat-websocket";
 
   const stompClient = new StompClientUtil(baseUrl);
-
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
   // const stompClientRef = useRef(new StompClientUtil(baseUrl));
 
   // const data = localStorage.getItem("Chat_User");
@@ -59,8 +59,7 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (!id) return;
-
+   
     const fetchData = async () => {
       try {
         const response = await getChatsForDisplay(id);
@@ -77,18 +76,18 @@ export default function ChatPage() {
       }
     };
 
-    const getContactData = async () => {
-      try {
-        const response = await getContactsById(id);
-        if (!response?.success && response?.status === 401) {
-          handleUnauthorized(response.message);
-        } else if (!response?.success) {
-          toastError(response?.message);
-        }
-      } catch (error) {
-        console.error("Error fetching contact data:", error);
-      }
-    };
+    // const getContactData = async () => {
+    //   try {
+    //     const response = await getContactsById(id);
+    //     if (!response?.success && response?.status === 401) {
+    //       handleUnauthorized(response.message);
+    //     } else if (!response?.success) {
+    //       toastError(response?.message);
+    //     }
+    //   } catch (error) {
+    //     console.error("Error fetching contact data:", error);
+    //   }
+    // };
 
     const handleUnauthorized = (message: string) => {
       dispatch(logout());
@@ -105,7 +104,7 @@ export default function ChatPage() {
       let user2: User = await getUserDetail();
       setUser(user2);
     }
-                                                                                                                                                                    
+
     const getTokenByUser = async () => {
       const token = await getToken();
       setToken(token || "");
@@ -115,7 +114,7 @@ export default function ChatPage() {
     const initialize = async () => {
       await getUserData();
       await getTokenByUser();
-      await Promise.all([fetchData(), getContactData()]);
+      await Promise.all([fetchData()]);
     };
 
     initialize();
@@ -124,8 +123,15 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!selectedChat?.roomId) return;
+
+    /**
+     * handle message form websocket
+     * @param message 
+     */
     const handleMessage = (message: any) => {
-      console.log("message--->"+message);
+      console.log("message--->" + message);
+
+      console.log(message.chatRoomId)
       setMessages((prev) => [
         ...prev,
         {
@@ -141,41 +147,75 @@ export default function ChatPage() {
       ]);
     };
 
-    const handleStatusMessageUpdate=(message:any)=>{
-      if (message.receiverId === user.id) {
-        stompClient.updateMessageStatus(
-          "/app/chat.updateStatus",
-          { chatRoomId: selectedChat.roomId,userId:user.id, status: "DELIVERED" },
-          {
-            Authorization: "Bearer " + token,
-          } as StompHeaders
-        );
 
-        //use for call status update 
-        stompClient.subscribeForTyping("/topic/public/status/update/"+selectedChat.roomId,(messages)=>{
-           console.log(messages);
-        });
+    /**
+     * call websocket for update status sent to deliver
+     * @param message 
+     */
+    const handleStatusMessageUpdate = (message: any) => {
+      if (message.receiverId === user.id) {
+        setTimeout(() => {
+          stompClient.updateMessageStatus(
+            "/app/chat.updateStatus",
+            { chatRoomId: selectedChat.roomId, userId: user.id, status: "DELIVERED" },
+            {
+              Authorization: "Bearer " + token,
+            } as StompHeaders
+          );
+        }, 2000);
       }
-    
-      // setMessages((prev) => [...prev, receivedMessage]);
     }
 
-    const handleTyping_=(message:any)=>{
-      console.log("Typing message--->"+message);
-      if(user.id !== message.userId){
+    /**
+     * this for suscribe for typing
+     * @param message 
+     */
+    const handleTyping_ = (message: any) => {
+      console.log("Typing message--->" + message);
+      if (user.id !== message.userId) {
         setIsTyping(message.typing);
       }
     }
+
+    /**
+     * in this method add suscribe method for getmessage and for typing 
+     */
     const initializeWebSocket = () => {
+
       stompClient.connect(
         () => {
           stompClient.subscribeToUserQueue("/topic/public/" + selectedChat.roomId, (messages) => {
             handleMessage(messages);
             handleStatusMessageUpdate(messages);
+
+
           });
+
+
           stompClient.subscribeForTyping("/topic/public/typing/" + selectedChat.roomId, (messages) => {
             handleTyping_(messages);
           });
+
+          stompClient.subscribeForTyping("/topic/public/status/update/" + selectedChat.roomId, (messages) => {
+            console.log("Deliverd status "+messages)
+            setMessages((prevMessages) =>
+              prevMessages.map((msg) =>
+                msg.status != 'READ' ? { ...msg, status: 'DELIVERED' } : msg
+              )
+            );
+          });
+
+
+          stompClient.subscribeForTyping("/topic/public/status/update/sent/" + selectedChat.roomId, (messages) => {
+            console.log("Read status "+messages)
+            setMessages((prevMessages) =>
+              prevMessages.map((msg) => ({
+                ...msg,
+                status: 'READ'
+              }))
+            );
+          });
+    
 
         },
         (error) => console.error("WebSocket connection error:", error)
@@ -184,11 +224,80 @@ export default function ChatPage() {
 
     initializeWebSocket();
 
+
+
     return () => {
       stompClient.disconnect();
     };
   }, [selectedChat]);
 
+  useEffect(() => {
+    if (selectedChat) {
+      messages.forEach((msg) => {
+        if (msg.receiverId === user.id && msg.status !== "READ") {
+        
+          stompClient.connect(
+            () => {
+              setTimeout(() => {
+                stompClient.updateMessageStatus(
+                  "/app/chat.updateStatus.Read",
+                  { chatRoomId: selectedChat.roomId, userId: user.id, status: "READ" },
+                  {
+                    Authorization: "Bearer " + token,
+                  } as StompHeaders
+                );
+              }, 5000);
+            },
+            (error) => console.error("WebSocket connection error:", error)
+          );
+        }
+      });
+    }
+  }, [selectedChat]);
+
+
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      console.log("out1")
+      const isAtBottom = chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop === chatContainerRef.current.clientHeight;
+      if (isAtBottom && selectedChat) {
+        console.log("out")
+        messages.forEach((msg) => {
+          console.log(msg.receiverId);
+
+          if (msg.receiverId === user.id && msg.status !== "READ") {
+            console.log("in")
+            stompClient.connect(
+              () => {
+                setTimeout(() => {
+                  stompClient.updateMessageStatus(
+                    "/app/chat.updateStatus.Read",
+                    { chatRoomId: selectedChat.roomId, userId: user.id, status: "READ" },
+                    {
+                      Authorization: "Bearer " + token,
+                    }
+                  );
+                }, 5000);
+              },
+              (error) => console.error("WebSocket connection error:", error)
+            );
+          }
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    const currentContainer = chatContainerRef.current;
+    if (currentContainer) {
+      currentContainer.addEventListener('scroll', handleScroll);
+    }
+    return () => {
+      if (currentContainer) {
+        currentContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [messages, selectedChat]);
 
 
   const sendMessage = () => {
@@ -218,14 +327,13 @@ export default function ChatPage() {
   };
 
 
-
-
   const handleChageContact = async (roomId: string, contact: ChatDisplayDto) => {
     const response = await getMessageByGroupId(roomId);
     if (response?.success) {
       console.log(response.message);
       setSelectedChat(contact);
       setIsTyping(false);
+      setInput("");
       setMessages(response.message);
     } else {
       if (response?.status == 401) {
@@ -262,15 +370,15 @@ export default function ChatPage() {
           );
         },
         (error) => console.error("WebSocket connection error:", error)
-      );   
-     }
+      );
+    }
 
     if (typingTimeout.current) {
       clearTimeout(typingTimeout.current);
     }
-  
-    
-  
+
+
+
     typingTimeout.current = setTimeout(() => {
       console.log("time out")
       stompClient.isAnyOneIsTyping(
@@ -283,7 +391,7 @@ export default function ChatPage() {
         {
           Authorization: "Bearer " + token,
         } as StompHeaders
-      );  
+      );
     }, 5000);
     return () => {
       stompClient.disconnect();
@@ -352,16 +460,35 @@ export default function ChatPage() {
           </div>
 
           {/* Chat Messages */}
-          <div className="flex-1 overflow-auto p-4 bg-gray-50">
+          <div ref={chatContainerRef} className="flex-1 overflow-auto p-4 bg-gray-50">
             {messages.map((msg, index) => (
               <div key={index} className={`mb-3 ${msg.sender === "You" ? "text-right" : "text-left"}`}>
                 <div
-                  className={`inline-block px-4 py-2 rounded-lg shadow-md ${msg.sender === "You" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"
+                  className={`inline-block px-4 py-2 rounded-lg shadow-md ${msg.sender === "You" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
                     }`}
                 >
                   {msg.message} <span className="ml-2 text-xs opacity-75">{msg.timestamp}</span>
                   {msg.sender === "You" && (
-                    <CheckIcon className={`w-4 h-4 inline ml-2 ${msg.status == "SENT" ? "text-green-500" : "text-gray-400"}`} />
+                    <>
+                      {/* <p>{msg.status}</p> */}
+                      {msg.status === "SENT" && (
+                        <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                      )}
+
+                      {msg.status === "DELIVERED" && (
+                        <>
+                          <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                          <CheckIcon className="w-4 h-4 inline -ml-2 text-gray-400" />
+                        </>
+                      )}
+
+                      {msg.status === "READ" && (
+                        <>
+                          <CheckIcon className="w-4 h-4 inline ml-2 text-green-500" />
+                          <CheckIcon className="w-4 h-4 inline -ml-2 text-green-500" />
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -369,9 +496,9 @@ export default function ChatPage() {
           </div>
 
           {/* Chat Input */}
-          {isTyping && ( <p className="ml-3 text-green-500" style={{fontWeight:'bold'}}>Typing</p>   )}
+          {isTyping && (<p className="ml-3 text-green-500" style={{ fontWeight: 'bold' }}>Typing</p>)}
           <div className="p-4 flex items-center bg-gray-100 border-t shadow-md">
-            
+
             <FaceSmileIcon className="w-6 h-6 text-gray-500 cursor-pointer" />
             <input
               type="text"

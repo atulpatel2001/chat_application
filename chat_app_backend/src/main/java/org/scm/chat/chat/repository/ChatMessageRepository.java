@@ -47,7 +47,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                                                  )
                                              WHERE gm.user_id = :loggedInUserId\s
                                                AND gm2.user_id != :loggedInUserId\s
-                                               AND g.chat_type = 'SINGLE';
+                                               AND g.chat_type = 'SINGLE' ORDER BY m.timestamp DESC;
             
             
             
@@ -93,7 +93,7 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
                    )
                WHERE gm.user_id = :loggedInUserId
                  AND gm2.user_id = :selectedUser  -- Filter for specific user
-                 AND g.chat_type = 'SINGLE';
+                 AND g.chat_type = 'SINGLE' ORDER BY m.timestamp DESC;
                """, nativeQuery = true)
     List<Object[]> getSingleUserLastMessageDataForDisplay(@Param("loggedInUserId") String loggedInUserId,
                                                           @Param("selectedUser") String selectedUser);
@@ -102,6 +102,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @Modifying
     @Transactional
-    @Query("UPDATE ChatMessage m SET m.status = :status WHERE m.chatRoom.id = :roomId AND m.receiverId.id = :userId")
+    @Query("UPDATE ChatMessage m SET m.status = :status WHERE m.chatRoom.id = :roomId AND m.receiverId.id = :userId AND m.status <> 'READ'")
     void updateMessageStatus(@Param("roomId") String roomId, @Param("userId") String userId, @Param("status") ChatMessage.MessageStatus status);
+
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ChatMessage m SET m.status = 'READ' WHERE m.chatRoom.id = :roomId AND m.receiverId.id = :userId AND m.status <> 'READ'")
+    void updateMessageStatusToRead(@Param("roomId") String roomId, @Param("userId") String userId);
 }

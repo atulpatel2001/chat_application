@@ -33,13 +33,17 @@ public class ChatController {
 
 
     @GetMapping("/get-chats")
-    public ResponseEntity<?> getChatsBetweenUser(@RequestParam("contactId") Long contactId, Authentication authentication){
+    public ResponseEntity<?> getChatsBetweenUser(@RequestParam("contactId") String contactId, Authentication authentication){
 
         try
         {
             String username = Helper.getEmailOfLoggedInUser(authentication);
-
-             UserChatContactData chatParticipants = this.chatMessageService.getChatParticipants(contactId,username);
+            UserChatContactData chatParticipants = null;
+          if(contactId.equalsIgnoreCase("no")){
+              chatParticipants = this.chatMessageService.getChatParticipantsInSeparatePage(username);
+          }else {
+               chatParticipants = this.chatMessageService.getChatParticipants(Long.valueOf(contactId), username);
+          }
             return ResponseEntity.status(HttpStatus.OK).body(chatParticipants);
 
         }catch (Exception e){

@@ -9,8 +9,9 @@ public interface ChatMessageService {
 
 
     UserChatContactData getChatParticipants(Long id, String loggedInUserId);
-
+    UserChatContactData getChatParticipantsInSeparatePage(String loggedInUserId);
 
 
     List<ChatMessageDto> getChatMessages(Long roomId, String loggedInUserId);
+    List<ChatMessageDto> getChatMessagesBuyUserId(Long roomId, String loggedInUserId);
 }

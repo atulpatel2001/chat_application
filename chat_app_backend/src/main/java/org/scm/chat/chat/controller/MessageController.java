@@ -1,12 +1,10 @@
 package org.scm.chat.chat.controller;
 
 
-import org.scm.chat.chat.dto.ChatStatusUpdateDto;
-import org.scm.chat.chat.dto.KafkaMessageDto;
-import org.scm.chat.chat.dto.TypingMessage;
-import org.scm.chat.chat.dto.TypingNotification;
+import org.scm.chat.chat.dto.*;
 import org.scm.chat.chat.model.ChatMessage;
 import org.scm.chat.chat.repository.ChatMessageRepository;
+import org.scm.chat.chat.service.ChatMessageService;
 import org.scm.chat.chat.service.MessageProducer;
 import org.scm.chat.exception.ResourceNotFoundException;
 import org.scm.chat.user.model.User;
@@ -44,6 +42,9 @@ public class MessageController {
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
+    @Autowired
+    private ChatMessageService chatMessageService;
+
 
     @MessageMapping("/chat.sendMessage")
 //    @SendTo("/topic/public")
@@ -72,12 +73,22 @@ public class MessageController {
         try {
             chatMessageRepository.updateMessageStatus(messageDto.getChatRoomId(), messageDto.getUserId(), messageDto.getStatus().equalsIgnoreCase("READ")? ChatMessage.MessageStatus.READ: ChatMessage.MessageStatus.DELIVERED);
 
-            messagingTemplate.convertAndSend("/topic/public/status/update" + messageDto.getChatRoomId(),
+            messagingTemplate.convertAndSend("/topic/public/status/update/" + messageDto.getChatRoomId(),
                     messageDto);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    @MessageMapping("/chat.updateStatus.Read")
+    public void updateMessageStatusTORead(@Payload ChatStatusUpdateDto messageDto) {
+        try {
+            chatMessageRepository.updateMessageStatusToRead(messageDto.getChatRoomId(), messageDto.getUserId());
+            messagingTemplate.convertAndSend("/topic/public/status/update/sent/" + messageDto.getChatRoomId(),
+                    messageDto);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 }

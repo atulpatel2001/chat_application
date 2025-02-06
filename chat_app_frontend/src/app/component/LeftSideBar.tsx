@@ -28,8 +28,8 @@ const menuItems = [
     title: "Messages",
     icon: <MessageSquare size={20} />,
     subItems: [
-      { name: "Inbox", href: "/messages/inbox" },
-      { name: "Sent", href: "/messages/sent" },
+      { name: "Chat", href: "/chat/contacts/chat" },
+      { name: "Group Chat", href: "/chat/contacts/group" },
       { name: "Drafts", href: "/messages/drafts" },
     ],
   },
