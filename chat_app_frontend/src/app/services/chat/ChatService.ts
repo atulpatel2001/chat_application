@@ -1,11 +1,12 @@
 
 import axios from "axios";
+import { getToken } from "../TokenService";
 
-const baseUrl = "http://localhost:8081/chat/with/";
-const token = localStorage.getItem("Chat_Auth_Token");
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat/with/";
 
 export const getChatsForDisplay = async (id: string) => {
     const url = baseUrl + "get-chats?contactId=" + id;
+    let token=await getToken();
     try {
 
         const response = await axios.get(url, {
@@ -47,6 +48,7 @@ export const getChatsForDisplay = async (id: string) => {
 
 export const getMessageByGroupId = async (id: string) => {
     const url = baseUrl + "get-messages?roomId=" + id;
+    let token=await getToken();
     try {
 
         const response = await axios.get(url, {

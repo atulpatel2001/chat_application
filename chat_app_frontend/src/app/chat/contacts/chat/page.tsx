@@ -48,7 +48,7 @@ export default function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id') || 'no';
-  let baseUrl = "http://localhost:8081/chat-websocket";
+  let baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat-websocket";
 
   const stompClient = new StompClientUtil(baseUrl);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);

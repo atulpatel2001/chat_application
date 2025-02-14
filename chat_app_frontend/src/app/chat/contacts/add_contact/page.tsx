@@ -27,7 +27,8 @@ const ContactForm: React.FC<ContactFormProps> = () => {
         favorite: false,
         userId: user2.id,
         links: [],
-        contact_image: null
+        contact_image: null,
+        contactUser_Id:""
     });
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -204,7 +205,8 @@ const ContactForm: React.FC<ContactFormProps> = () => {
             favorite: false,
             userId: user2.id,
             links: [],
-            contact_image: null
+            contact_image: null,
+            contactUser_Id:""
         });
         setErrors({});
     };

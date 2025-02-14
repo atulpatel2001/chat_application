@@ -1,11 +1,13 @@
 import { UserModel } from "@/app/model/UserModel";
 import { fetchDefaultImageAsFile } from "@/app/util/ImageUtil";
 import axios from "axios";
+import { getToken } from "../TokenService";
 
-const baseUrl = "http://localhost:8081/chat/user/";
-const token = localStorage.getItem("Chat_Auth_Token");
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat/user/";
+// const token = localStorage.getItem("Chat_Auth_Token");
 export const userInfo = async (userId: string) => {
     const url = baseUrl + "info?userId=" + userId;
+    let token=await getToken();
     try {
         const response = await axios.get(url, {
             headers: {
@@ -43,6 +45,7 @@ export const userInfo = async (userId: string) => {
 
 export const updateUser = async (userData: UserModel) => {
     const url = baseUrl + "update_user";
+    let token=await getToken();
     try {
         let formData = new FormData();
         formData.append("userDto", new Blob([JSON.stringify({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { m, motion } from "framer-motion";
 import Link from "next/link";
 import { Menu, ChevronDown, ChevronUp, Home, Settings, MessageSquare, Users } from "lucide-react";
 
@@ -29,7 +29,12 @@ const menuItems = [
     icon: <MessageSquare size={20} />,
     subItems: [
       { name: "Chat", href: "/chat/contacts/chat" },
-      { name: "Group Chat", href: "/chat/contacts/group" },
+      { name: "Group", href:"#",
+        nestedItems:[
+          {name: "Create", href: "/chat/contacts/group/create"},
+          {name: "Chat", href: "/chat/contacts/group/group-chat" },
+        ]
+       },
       { name: "Drafts", href: "/messages/drafts" },
     ],
   },
@@ -57,6 +62,7 @@ const menuItems = [
 const LeftSidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+  const [expandedSubMenus, setExpandedSubMenus] = useState<Record<string, boolean>>({});
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
@@ -64,6 +70,12 @@ const LeftSidebar = () => {
     setExpandedMenus((prev) => ({
       ...prev,
       [title]: !prev[title],
+    }));
+  };
+  const toggleSubMenu = (name: string) => {
+    setExpandedSubMenus((prev) => ({
+      ...prev,
+      [name]: !prev[name],
     }));
   };
 
@@ -83,20 +95,18 @@ const LeftSidebar = () => {
 
         {/* Menu Items */}
         <ul className="space-y-2">
-          {menuItems.map(({ title, icon, href, subItems }) => (
+          {menuItems.map(({ title, icon, subItems }) => (
             <li key={title}>
-              {/* <Link  className="block"> */}
-                <button
-                  onClick={() => toggleMenu(title)}
-                  className="flex items-center w-full p-2 hover:bg-gray-800 rounded-md"
-                >
-                  {icon}
-                  {isOpen && <span className="ml-3 flex-1">{title}</span>}
-                  {isOpen && (
-                    expandedMenus[title] ? <ChevronUp size={16} /> : <ChevronDown size={16} />
-                  )}
-                </button>
-              {/* </Link> */}
+              <button
+                onClick={() => toggleMenu(title)}
+                className="flex items-center w-full p-2 hover:bg-gray-800 rounded-md"
+              >
+                {icon}
+                {isOpen && <span className="ml-3 flex-1">{title}</span>}
+                {isOpen && (
+                  expandedMenus[title] ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                )}
+              </button>
 
               {/* Submenu */}
               {expandedMenus[title] && isOpen && (
@@ -106,13 +116,42 @@ const LeftSidebar = () => {
                   transition={{ duration: 0.3 }}
                   className="ml-6 mt-2 space-y-1"
                 >
-                  {subItems.map(({ name, href }) => (
+                  {subItems.map(({ name, href, nestedItems }) => (
                     <li key={name}>
                       <Link href={href} className="block">
-                        <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md w-full text-left">
+                        <button
+                          onClick={() => nestedItems && toggleSubMenu(name)}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md w-full text-left flex justify-between"
+                        >
                           {name}
+                          {nestedItems &&
+                            (expandedSubMenus[name] ? (
+                              <ChevronUp size={16} />
+                            ) : (
+                              <ChevronDown size={16} />
+                            ))}
                         </button>
                       </Link>
+
+                      {/* Nested Submenu */}
+                      {nestedItems && expandedSubMenus[name] && (
+                        <motion.ul
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          transition={{ duration: 0.3 }}
+                          className="ml-6 mt-2 space-y-1"
+                        >
+                          {nestedItems.map(({ name, href }) => (
+                            <li key={name}>
+                              <Link href={href} className="block">
+                                <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-600 rounded-md w-full text-left">
+                                  {name}
+                                </button>
+                              </Link>
+                            </li>
+                          ))}
+                        </motion.ul>
+                      )}
                     </li>
                   ))}
                 </motion.ul>

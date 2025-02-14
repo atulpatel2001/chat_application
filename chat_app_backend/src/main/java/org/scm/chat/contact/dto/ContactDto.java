@@ -52,4 +52,6 @@ public class ContactDto {
 
     private List<SocialLinkDto> links = new ArrayList<>();
 
+    private String contactUser_Id;
+
 }

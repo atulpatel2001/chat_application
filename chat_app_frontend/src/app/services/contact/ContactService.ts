@@ -1,12 +1,13 @@
 import { Contact } from "@/app/model/Contact";
 import { fetchDefaultImageAsFile } from "@/app/util/ImageUtil";
 import axios from "axios";
+import { getToken } from "../TokenService";
 
-const baseUrl = "http://localhost:8081/chat/contact/";
-const token = localStorage.getItem("Chat_Auth_Token");
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat/contact/";
 
 
 export const addContact = async (contactData: Contact) => {
+    let token=await getToken();
     const url = baseUrl + "add-contact";
     try {
         let formData = new FormData();
@@ -89,6 +90,7 @@ export const addContact = async (contactData: Contact) => {
 
 export const getContacts = async () => {
     const url = baseUrl + "get-contact";
+    let token=await getToken();
     try {
         
         const response = await axios.get(url,{
@@ -131,6 +133,7 @@ export const getContacts = async () => {
 
 export const getContactsById = async (id:string) => {
     const url = baseUrl + "get-contact-by-id?contactId="+id;
+    let token=await getToken();
     try {
         
         const response = await axios.get(url,{
@@ -171,6 +174,7 @@ export const getContactsById = async (id:string) => {
 
 export const updateContact = async (contactData: Contact,id:string) => {
     const url = baseUrl + "update-contact";
+    let token=await getToken();
     try {
         let formData = new FormData();
        
@@ -254,6 +258,7 @@ export const updateContact = async (contactData: Contact,id:string) => {
 
 export const deleteContactsById = async (id:string) => {
     const url = baseUrl + "delete-contact-by-id?contactId="+id;
+    let token=await getToken();
     try {
         
         const response = await axios.delete(url,{
@@ -295,6 +300,7 @@ export const deleteContactsById = async (id:string) => {
 
 export const isApplicableContactsById = async (id:string) => {
     const url = baseUrl + "inapplicable-for-chat?contactId="+id;
+    let token=await getToken();
     try {
         
         const response = await axios.get(url,{

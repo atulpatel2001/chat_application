@@ -4,7 +4,7 @@ import axios from "axios";
 
 import { login_, User } from "../redux/slice/authSlice";
 import { AppDispatch } from "../redux/store/store";
-import { Console } from "console";
+
 
 export interface LoginResponse {
   access_token: string;
@@ -13,8 +13,8 @@ export interface LoginResponse {
   token_type: string;
   scope: string;
 }
-const baseUrl = "http://localhost:8081/chat/"
-const baseUrl2 = "http://localhost:8081/"
+const baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat/"
+const baseUrl2 = process.env.NEXT_PUBLIC_BACKEND;
 
 
 export const signin = async (data: UserForm) => {
@@ -134,7 +134,7 @@ export const login = async (data: LoginFormData, dispatch: AppDispatch) => {
 
 
 export const thirdPartyLogin = async (providerType: string) => {
-  const url: string = baseUrl2;
-  console.log(url)
+  const url: string = baseUrl2 || "";
+  
   window.location.href = url + "oauth2/authorization/" + providerType;
 }

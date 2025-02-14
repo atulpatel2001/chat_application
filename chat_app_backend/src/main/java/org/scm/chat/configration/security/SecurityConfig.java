@@ -31,7 +31,7 @@ public class SecurityConfig {
     private OAuthAuthenicationSuccessHandler successHandler;
 
     @Autowired
-    private AuthFailtureHandler authFailtureHandler;
+    private AuthFailureHandler authFailtureHandler;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration builder) throws Exception {
@@ -53,7 +53,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(authorize -> {
-            authorize.requestMatchers("/chat/user/**","/chat/contact/**","/chat/with/**").authenticated()
+            authorize.requestMatchers("/chat/user/**","/chat/contact/**","/chat/with/**","/chat/group/**").authenticated()
                     .requestMatchers("/admin/**").hasRole("ADMIN")
                     .requestMatchers("/**").permitAll()
                     .anyRequest().authenticated();

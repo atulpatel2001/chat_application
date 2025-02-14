@@ -5,6 +5,8 @@ import lombok.*;
 import org.scm.chat.model.BaseEntity;
 import org.scm.chat.chat.utility.ChatType;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,8 +27,13 @@ public class ChatRoom extends BaseEntity {
     @Column(name = "room_name", length = 100)
     private String name;
 
+    @Column(name = "group_image", length = 1000)
+    private String groupImage;
+
+
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
-
+    @OneToMany(mappedBy = "chatRoom", fetch = FetchType.LAZY)
+    private List<ChatParticipant> participants;
 }

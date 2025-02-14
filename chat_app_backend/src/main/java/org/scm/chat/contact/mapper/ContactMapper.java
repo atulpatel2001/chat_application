@@ -15,8 +15,12 @@ public interface ContactMapper {
     Contact toEntity(ContactDto contactDto);
 
     // Convert Entity to DTO
+    @Mapping(source = "contactUserId.id", target = "contactUser_Id")
+    @Mapping(source = "user.id", target = "userId")
     ContactDto toDto(Contact contact);
 
+    @Mapping(source = "contactUserId.id", target = "contactUser_Id")
+    @Mapping(source = "user.id", target = "userId")
     List<ContactDto> mapEntitiesToDtos(List<Contact> entities);
 
     List<Contact> mapDtosToEntities(List<ContactDto> dtos);

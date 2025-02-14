@@ -11,5 +11,6 @@ export interface Contact {
     userId: string;
     links?: Array<{ id?: string; link: string; title: string }>;
     contact_image:File | null;
+    contactUser_Id:string;
   }
   

@@ -1,7 +1,7 @@
-'use client'; // Ensure this is here
+'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation'; // usePathname instead of useRouter
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { logout, loadUserFromStorage } from "../redux/slice/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,8 +13,8 @@ import RightSidebar from './RightSideBar';
 const Navbar = () => {
   const route = useRouter();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const pathname = usePathname(); // Using usePathname from next/navigation instead of useRouter()
-
+  const [loading, setLoading] = useState(true); // Loading state
+  const pathname = usePathname();
   const dispatch = useDispatch();
   const { isLoggedIn } = useSelector((state: RootState) => state.auth);
 
@@ -22,20 +22,29 @@ const Navbar = () => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme as 'light' | 'dark');
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+  
+    // Set loading to true before dispatching
+    setLoading(true);
     dispatch(loadUserFromStorage());
+  
+    // Listen for changes in isLoggedIn to update loading state
   }, [dispatch]);
+  
+  useEffect(() => {
+    // Set loading to false once isLoggedIn is determined
+    setLoading(false);
+  }, [isLoggedIn]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
     localStorage.setItem('theme', newTheme);
-
-
   };
+
   const handleLogout = () => {
     dispatch(logout());
-    toast.success("Successfully Logout ,Thank you for your visit..", {
+    toast.success("Successfully Logout, Thank you for your visit..", {
       style: {
         fontSize: '12px',
         fontWeight: 'bold',
@@ -49,16 +58,26 @@ const Navbar = () => {
     }, 0);
   };
 
-  return (
-    <>{isLoggedIn ? ( 
-      <div>
-    <LeftSidebar/>
-      <RightSidebar />
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
-    ):(<></>)}
+    );
+  }
+
+  return (
+    <>
+      {isLoggedIn ? (
+        <div>
+          <LeftSidebar />
+          <RightSidebar />
+        </div>
+      ) : (
+        <></>
+      )}
       <nav className="bg-white border-gray-900 shadow-sm dark:bg-gray-900">
-        <div className="max-w-screen-xl flex flex-wrap  justify-between mx-auto p-4">
-          {/* Brand */}
+        <div className="max-w-screen-xl flex flex-wrap justify-between mx-auto p-4">
           <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
             <img
               src="/logo.png"
@@ -70,9 +89,7 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Right-side buttons */}
           <div className="flex gap-2 md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
-            {/* Theme toggle button */}
             <button
               id="theme_change_button"
               onClick={toggleTheme}
@@ -82,15 +99,8 @@ const Navbar = () => {
               <span>{theme === 'light' ? 'Light' : 'Dark'}</span>
             </button>
             {isLoggedIn ? (
-              // Render content for logged-in users
-            
               <div>
-                {/* <Link href="/chat/contacts/add_contact">
-                  <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
-                    Add Contact
-                  </button>
-                </Link> */}
-                 <Link href="/chat/user/profile">
+                <Link href="/chat/user/profile">
                   <button className="text-white bg-blue-500 hover:bg-blue-600 mx-2 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
                     My Profile
                   </button>
@@ -103,7 +113,6 @@ const Navbar = () => {
                 </Link>
               </div>
             ) : (
-              // Render content for guests (not logged in)
               <div>
                 <Link href="/chat/login">
                   <button className="text-white bg-gray-800 hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm mx-3 px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
@@ -117,62 +126,9 @@ const Navbar = () => {
                 </Link>
               </div>
             )}
-            {/* Mobile menu button */}
-            <button
-              data-collapse-toggle="navbar-cta"
-              type="button"
-              className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-              aria-controls="navbar-cta"
-              aria-expanded="false"
-            >
-              <span className="sr-only">Open main menu</span>
-              <svg
-                className="w-5 h-5"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 17 14"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M1 1h15M1 7h15M1 13h15"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Navbar links */}
-          <div
-            className="items-center justify-between hidden w-full md:flex md:w-auto md:order-1"
-            id="navbar-cta"
-          >
-            <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-              {[
-                { href: isLoggedIn ? '/chat/user/dashboard' : '/chat/home ', label: 'Home' },
-                { href: '/chat/about', label: 'About' },
-                { href: '/chat/services', label: 'Services' },
-                { href: '/chat/contact', label: 'Contact' }
-              ].map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={`block py-2 px-3 md:p-0 ${pathname === link.href
-                      ? 'text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:dark:text-blue-500'
-                      : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700'
-                      }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </nav>
-    
     </>
   );
 };

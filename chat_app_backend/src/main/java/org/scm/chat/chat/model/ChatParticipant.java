@@ -34,6 +34,8 @@ public class ChatParticipant extends BaseEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @Column(name = "is_admin")
+    private boolean isAdmin = false;
 
 
 
