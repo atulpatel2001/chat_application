@@ -201,3 +201,49 @@ export const addParticipant_= async(groupId:string,user:Contact) =>{
     }
 
 }
+
+
+
+
+
+export const getChats = async (roomId:string) => {
+    let url = baseUrl + "get-messages?groupId="+roomId;
+    let token = await getToken();
+
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        console.log(response);
+        return {
+            success: true,
+            message: response.data
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error != undefined) {
+                if (error.response?.status == 401) {
+                    return {
+                        success: false,
+                        message: error.response?.data,
+                        status: error.response?.status,
+                        field: false,
+                    }
+                } else {
+                    return {
+                        success: false,
+                        message: error.response?.data,
+                        status: error.response?.status,
+                        field: false,
+                    }
+                }
+
+
+            }
+        }
+    }
+
+}

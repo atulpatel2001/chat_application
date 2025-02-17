@@ -1,290 +1,357 @@
-'use client';
-
-import { useState } from 'react';
-import { MoreVertical, Plus, Settings, UserPlus, UserMinus, Edit2, Trash } from 'lucide-react';
+'use client'
 import Navbar from '@/app/component/Navbar';
+import { ChatMessageDto, ChatRoomDto, UserDto } from '@/app/model/ChatRoom';
+import { logout, User } from '@/app/redux/slice/authSlice';
+import { getChats, getRooms } from '@/app/services/chat/GroupService';
+import StompClientUtil from '@/app/services/chat/WebSocketService';
+import { getToken, getUserDetail } from '@/app/services/TokenService';
+import { StompHeaders } from '@stomp/stompjs';
+import { CheckIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
 
-// Types
-interface Group {
-  id: string;
-  name: string;
-  image: string;
-  participants: User[];
-}
+const GroupChat = () => {
+  const [newMessage, setNewMessage] = useState('');
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [chatRoom, setChatRoom] = useState<ChatRoomDto[]>([]);
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [selectedGroup, setSelectedGroup] = useState<ChatRoomDto | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginUser, setLoginUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<ChatMessageDto[]>([]);
+   let baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat-websocket";
+    const stompClient = new StompClientUtil(baseUrl);
+    const [token, setToken] = useState("");
 
-interface User {
-  id: string;
-  name: string;
-  avatar: string;
-}
 
-// Mock data
-const mockUsers: User[] = [
-  { id: '1', name: 'John Doe', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1' },
-  { id: '2', name: 'Jane Smith', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2' },
-  { id: '3', name: 'Mike Johnson', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=3' },
-];
+  const handleToggleParticipants = () => {
+    setShowParticipants(!showParticipants);
+  };
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        setIsLoading(true);
 
-export default function Home() {
-  const [groups, setGroups] = useState<Group[]>([
-    {
-      id: '1',
-      name: 'Team Alpha',
-      image: 'https://api.dicebear.com/7.x/shapes/svg?seed=1',
-      participants: [mockUsers[0], mockUsers[1]],
-    },
-    {
-      id: '2',
-      name: 'Project Beta',
-      image: 'https://api.dicebear.com/7.x/shapes/svg?seed=2',
-      participants: [mockUsers[1], mockUsers[2]],
-    },
-  ]);
+        // Fetch Rooms and Contacts in Parallel
+        const [roomsResponse, user,token_] = await Promise.all([getRooms(), getUserDetail(),getToken()]);
+        // Handle Rooms Response
+        if (roomsResponse?.success) {
+          setChatRoom(roomsResponse.message);
+        } else if (roomsResponse?.status === 401) {
+          handleUnauthorized(roomsResponse.message);
+        }
+        setLoginUser(user);
+        setToken(token_ || "");
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
-  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-  const [isEditingGroup, setIsEditingGroup] = useState(false);
-  const [showParticipantSelector, setShowParticipantSelector] = useState(false);
+    fetchAllData();
+  }, [dispatch, router]);
 
-  // Group Management Functions
-  const createGroup = () => {
-    if (newGroupName.trim()) {
-      const newGroup: Group = {
-        id: Date.now().toString(),
-        name: newGroupName,
-        image: `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}`,
-        participants: [],
-      };
-      setGroups([...groups, newGroup]);
-      setNewGroupName('');
-      setIsCreateGroupOpen(false);
+
+  // Reusable Function for Unauthorized Handling
+  const handleUnauthorized = (message: any) => {
+    dispatch(logout());
+    toast.error(message, {
+      style: {
+        fontSize: '15px',
+        fontWeight: 'bold',
+        width: '400px',
+      },
+    });
+    router.push("/chat/login");
+  };
+
+  const setSelectedGroupDetail = useCallback(async (group: ChatRoomDto) => {
+    setSelectedGroup(group);
+
+    const [messageResponse] = await Promise.all([getChats(group.id)]);
+    if (messageResponse?.success) {
+      setMessages(messageResponse.message);
+    } else if (messageResponse?.status === 401) {
+      handleUnauthorized(messageResponse.message);
+    } else {
+      toast.error(messageResponse?.message, {
+        style: {
+          fontSize: '15px',
+          fontWeight: 'bold',
+          width: '400px',
+        },
+      });
     }
-  };
+    setNewMessage("");
+  }, [loginUser]);
+  // const handleSendMessage = () => {
+  //   if (newMessage.trim()) {
+  //     setMessages([...messages, { id: Date.now(), user: 'You', text: newMessage, isSender: true }]);
+  //     setNewMessage('');
+  //   }
+  // };
 
-  const updateGroupName = (groupId: string, newName: string) => {
-    setGroups(groups.map(group => 
-      group.id === groupId ? { ...group, name: newName } : group
-    ));
-    setIsEditingGroup(false);
-  };
 
-  const deleteGroup = (groupId: string) => {
-    setGroups(groups.filter(group => group.id !== groupId));
-    if (selectedGroup?.id === groupId) setSelectedGroup(null);
-  };
-
-  const addParticipant = (groupId: string, user: User) => {
-    setGroups(groups.map(group => {
-      if (group.id === groupId && !group.participants.find(p => p.id === user.id)) {
-        return { ...group, participants: [...group.participants, user] };
-      }
-      return group;
-    }));
-  };
-
-  const removeParticipant = (groupId: string, userId: string) => {
-    setGroups(groups.map(group => {
-      if (group.id === groupId) {
-        return { ...group, participants: group.participants.filter(p => p.id !== userId) };
-      }
-      return group;
-    }));
-  };
+   const handleSendMessage = () => {
+      if (newMessage.trim() === "") return;
+      stompClient.connect(
+        () => {
+          console.log("Connected to WebSocket");
+          stompClient.sendMessage(
+            "/app/chat.sendMessage_g",
+            {
+              chatRoomId: selectedGroup?.id,
+              message: newMessage,
+              status: "SENT",
+              senderId: loginUser?.id,
+              timestamp: "",
+            },
+            {
+              Authorization: "Bearer " + token,
+            } as StompHeaders
+          );
+        },
+        (error) => console.error("WebSocket connection error:", error)
+      );
+  
+      setNewMessage("");
+    };
 
   return (
     <>
-    <main className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-80 border-r bg-gray-50 h-full p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Groups</h2>
-          <button
-            onClick={() => setIsCreateGroupOpen(true)}
-            className="p-2 hover:bg-gray-200 rounded-full"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-        </div>
+      <Navbar />
+      <div className=" flex h-screen bg-gray-200" style={{ marginLeft: "80px", marginRight: "80px" }}>
+        <div className="w-full h-screen flex bg-gray-100">
+          {/* Sidebar for Groups */}
+          <div className="w-1/4 h-full bg-white shadow-md p-4 overflow-y-auto">
 
-        {/* Group List */}
-        <div className="space-y-2">
-          {groups.map((group) => (
-            <div
-              key={group.id}
-              onClick={() => setSelectedGroup(group)}
-              className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                selectedGroup?.id === group.id ? 'bg-blue-100' : 'hover:bg-gray-100'
-              }`}
-            >
-              <img
-                src={group.image}
-                alt={group.name}
-                className="w-10 h-10 rounded-full mr-3"
-              />
-              <span className="flex-1">{group.name}</span>
+
+            <div className="overflow-auto">
+              {chatRoom.map((group) => (
+                <div
+                  key={group.id}
+                  onClick={() => setSelectedGroupDetail(group)}
+                  className={`p-4 flex items-center space-x-4 cursor-pointer transition duration-300 hover:bg-gray-200 "bg-gray-300" : ""
+                  }`}
+                // onClick={() => handleChageContact(group.roomId, contact)}
+                >
+                  {group && (
+                    <img
+                      src={group.groupImage || "http://res.cloudinary.com/dnhniwrqh/image/upload/c_fill,h_500,w_500/9cfcf9d1-0438-4d81-988b-b49590dcc249"}
+                      alt={group.name || "Group"}
+                      className="w-10 h-10 rounded-full"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-semibold">{group.name}</p>
+                    {/* <p className="text-sm text-gray-500 truncate">{group.name}</p> */}
+                  </div>
+                  {/* <p className="text-xs text-gray-400">12:10pm</p> */}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
-        {selectedGroup ? (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedGroup.image}
-                  alt={selectedGroup.name}
-                  className="w-16 h-16 rounded-full"
-                />
-                {isEditingGroup ? (
-                  <input
-                    type="text"
-                    value={selectedGroup.name}
-                    onChange={(e) => updateGroupName(selectedGroup.id, e.target.value)}
-                    onBlur={() => setIsEditingGroup(false)}
-                    className="border p-2 rounded"
-                    autoFocus
-                  />
+          </div>
+          {/* Chat Section */}
+          {selectedGroup ? (
+            <div className="flex-1 h-full flex flex-col justify-between bg-white shadow-xl rounded-2xl m-4 p-5" >
+              {/* Group Info Section */}
+              <div
+                className="flex justify-between items-center mb-4  cursor-pointer hover:bg-gray-200 " style={{ padding: "10px", borderRadius: "7px" }}
+                onClick={handleToggleParticipants}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden">
+                    <img src={selectedGroup.groupImage} alt={selectedGroup.name} className="h-full w-full object-cover" />
+                  </div>
+                  <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
+                </div>
+                <button className="bg-gray-200 px-3 py-1 rounded-lg hover:bg-gray-300">
+                  Members
+                </button>
+              </div>
+              {/* Messages Section */}
+              <div className="flex-1 mb-4 overflow-y-auto">
+                {messages ? (messages.map((msg) => (
+               <div
+               key={msg.id}
+               className={`flex items-center mb-3 ${msg.sender === "You" ? "justify-end" : "justify-start"}`}
+             >
+               <div
+                 className={`mr-3 h-10 w-10 rounded-full flex items-center justify-center font-bold text-white ${msg.sender === "You" ? "bg-green-500" : "bg-gray-300"}`}
+               >
+                 <img
+                   src={msg.senderUser.profilePic || ""}
+                   alt={msg.senderUser.name}
+                   className="w-10 h-10 rounded-full"
+                 />
+               </div>
+               <div
+                 className={`relative p-3 rounded-2xl shadow-md ${msg.sender === "You" ? "bg-blue-500 text-white" : "bg-blue-100"} hover:opacity-90`}
+               >
+                 {/* Message Text */}
+                 <div>
+                   {msg.message}
+                   <span className="ml-2 text-xs opacity-75">{msg.timestamp}</span>
+                   
+                   {/* Display Sender's Name on Hover */}
+                   {msg.sender !== "You" && (
+                     <span className="absolute left-0 top-[-20px] text-sm font-semibold text-gray-700 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                       {msg.senderUser.name}
+                     </span>
+                   )}
+             
+                   {msg.sender === "You" && (
+                     <>
+                       {msg.status === "SENT" && (
+                         <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                       )}
+             
+                       {msg.status === "DELIVERED" && (
+                         <>
+                           <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                           <CheckIcon className="w-4 h-4 inline -ml-2 text-gray-400" />
+                         </>
+                       )}
+             
+                       {msg.status === "READ" && (
+                         <>
+                           <CheckIcon className="w-4 h-4 inline ml-2 text-green-500" />
+                           <CheckIcon className="w-4 h-4 inline -ml-2 text-green-500" />
+                         </>
+                       )}
+                     </>
+                   )}
+                 </div>
+               </div>
+             </div>
+             
+                
+                ))
                 ) : (
-                  <h1 className="text-2xl font-bold">{selectedGroup.name}</h1>
-                )}
+                  <div className="flex-1 h-full flex flex-col justify-between bg-white shadow-xl rounded-2xl m-4 p-4">
+                    <p className="font-semibold">No messages yet</p>
+                  </div>)
+                }
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsEditingGroup(true)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
-                >
-                  <Edit2 className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setShowParticipantSelector(true)}
-                  className="p-2 hover:bg-gray-100 rounded-full"
-                >
-                  <UserPlus className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => deleteGroup(selectedGroup.id)}
-                  className="p-2 hover:bg-gray-100 rounded-full text-red-500"
-                >
-                  <Trash className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
 
-            {/* Participants List */}
-            <div className="mt-6">
-              <h2 className="text-xl font-semibold mb-4">Participants</h2>
-              <div className="space-y-3">
-                {selectedGroup.participants.map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={participant.avatar}
-                        alt={participant.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <span>{participant.name}</span>
-                    </div>
+              {/* Send Message Input Section */}
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  className="flex-1 mr-3 border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                />
+                <button
+                  className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition duration-300"
+               onClick={handleSendMessage}
+                >
+                  Send
+                </button>
+              </div>
+
+              {/* Participants Detail Slide */}
+              {showParticipants && (
+                <div
+                  className="fixed top-0 left-0 right-0 bottom-0 bg-white p-6 overflow-y-auto transition-transform transform duration-300 ease-in-out"
+                  style={{ transform: showParticipants ? 'translateY(0)' : 'translateY(-100%)' }}
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold">Participants</h3>
                     <button
-                      onClick={() => removeParticipant(selectedGroup.id, participant.id)}
-                      className="p-2 hover:bg-gray-200 rounded-full text-red-500"
+                      className="bg-gray-200 px-3 py-1 rounded-lg hover:bg-gray-300"
+                      onClick={() => setShowParticipants(false)}
                     >
-                      <UserMinus className="w-5 h-5" />
+                      Close
                     </button>
                   </div>
-                ))}
+                  <div>
+                    {selectedGroup.participants.map((participant, index) => (
+                      <div key={index} className="flex items-center mb-2">
+                        <div className="mr-3 h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-white">
+                          {participant.user.name}
+                        </div>
+                        {/* <p>{participant}</p> */}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 h-full flex flex-col justify-between bg-white shadow-xl rounded-2xl m-4 p-4">
+              <p className="font-semibold">Select Group For Chat</p>
+            </div>
+          )}
+
+          {showParticipants && selectedGroup && (
+            <div className="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+              {/* Wider Modal Container */}
+              <div className="bg-white p-8 rounded-xl w-[700px] h-[50vh] max-h-[90vh] overflow-y-auto">
+                {/* Group Info Section */}
+                <div className="mb-6">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="h-20 w-20 rounded-full bg-gray-200 overflow-hidden">
+                      <img
+                        src={selectedGroup.groupImage}
+                        alt={selectedGroup.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-semibold">{selectedGroup.name}</h3>
+                      {/* Optionally display the group description if needed */}
+                      {/* <p className="text-sm text-gray-500">{selectedGroup.description}</p> */}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Participants Section */}
+                <div className="mb-4">
+                  <h4 className="text-lg font-semibold mb-3">Members</h4>
+                  <div>
+                    {selectedGroup.participants.map((participant) => (
+                      <div key={participant.id} className="flex items-center mb-5">
+                        <div className="mr-4 h-12 w-12 rounded-full bg-gray-300 overflow-hidden">
+                          <img
+                            src={participant.user.profilePic || ""}
+                            alt={participant.user.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-xl">{participant.user.name}</p>
+                          <p className="text-sm text-gray-500">{participant.user.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-end mt-6">
+                  <button
+                    className="bg-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300"
+                    onClick={handleToggleParticipants}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            Select a group to view details
-          </div>
-        )}
+          )}
+
+
+        </div>
       </div>
-
-      {/* Create Group Dialog */}
-      {isCreateGroupOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Create New Group</h2>
-            <input
-              type="text"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              placeholder="Group Name"
-              className="w-full border p-2 rounded mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setIsCreateGroupOpen(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createGroup}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Participant Selector Dialog */}
-      {showParticipantSelector && selectedGroup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Add Participants</h2>
-            <div className="space-y-2">
-              {mockUsers
-                .filter(user => !selectedGroup.participants.find(p => p.id === user.id))
-                .map(user => (
-                  <div
-                    key={user.id}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <span>{user.name}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        addParticipant(selectedGroup.id, user);
-                        setShowParticipantSelector(false);
-                      }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Add
-                    </button>
-                  </div>
-                ))}
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowParticipantSelector(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </main>
 
     </>
   );
-}
+};
+
+export default GroupChat;

@@ -91,4 +91,13 @@ public class MessageController {
         }
     }
 
+
+
+    @MessageMapping("/chat.sendMessage_g")
+//    @SendTo("/topic/public")
+    public void sendGroupMessage(@RequestBody KafkaMessageDto message) {
+        message.setTimestamp(LocalDateTime.now().toString());
+        messagingTemplate.convertAndSend("/topic/public/group/" + message.getChatRoomId(), message);
+        messageProducer.sendMessage(topic, message);
+    }
 }

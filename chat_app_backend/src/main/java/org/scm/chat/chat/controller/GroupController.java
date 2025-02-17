@@ -2,6 +2,8 @@ package org.scm.chat.chat.controller;
 
 import jakarta.validation.Valid;
 import org.apache.coyote.Response;
+import org.scm.chat.chat.dto.KafkaMessageDto;
+import org.scm.chat.chat.service.ChatMessageService;
 import org.scm.chat.chat.service.ChatParticipantService;
 import org.scm.chat.chat.service.ChatRoomService;
 import org.scm.chat.contact.constant.ContactConstant;
@@ -13,9 +15,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping(value = "/chat/group", produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -26,6 +31,8 @@ public class GroupController {
     @Autowired private ChatRoomService chatRoomService;
 
     @Autowired private ChatParticipantService chatParticipantService;
+
+    @Autowired private ChatMessageService chatMessageService;
 
     @PostMapping(value = "/create")
     public ResponseEntity<?> addContact(@RequestParam("name") String name, @RequestPart("image") MultipartFile image, Authentication authentication){
@@ -93,4 +100,13 @@ public class GroupController {
         }
     }
 
+    @GetMapping("/get-messages")
+    public ResponseEntity<?> getMessage(@RequestParam Long groupId,Authentication authentication){
+        try {
+            String username = Helper.getEmailOfLoggedInUser(authentication);
+            return ResponseEntity.status(HttpStatus.OK).body(this.chatMessageService.getChatsForGroup(groupId,username));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
 }

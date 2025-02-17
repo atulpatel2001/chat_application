@@ -16,7 +16,6 @@ import { logout, User } from "@/app/redux/slice/authSlice";
 import { toast } from "react-toastify";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/app/component/Navbar";
-import { getContactsById } from "@/app/services/contact/ContactService";
 import { ChatMessageDto } from "@/app/model/Message";
 import StompClientUtil from "@/app/services/chat/WebSocketService";
 import { IMessage, StompHeaders } from "@stomp/stompjs";

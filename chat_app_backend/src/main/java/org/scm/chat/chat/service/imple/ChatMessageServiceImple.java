@@ -2,9 +2,13 @@ package org.scm.chat.chat.service.imple;
 
 import org.scm.chat.chat.dto.ChatDisplayDto;
 import org.scm.chat.chat.dto.ChatMessageDto;
+import org.scm.chat.chat.dto.ChatMessageDtoForGroup;
 import org.scm.chat.chat.dto.UserChatContactData;
+import org.scm.chat.chat.mapper.ChatRoomMapper;
 import org.scm.chat.chat.model.ChatMessage;
+import org.scm.chat.chat.model.ChatRoom;
 import org.scm.chat.chat.repository.ChatMessageRepository;
+import org.scm.chat.chat.repository.ChatRoomRepository;
 import org.scm.chat.chat.service.ChatMessageService;
 import org.scm.chat.contact.model.Contact;
 import org.scm.chat.contact.repository.ContactRepository;
@@ -35,6 +39,7 @@ public class ChatMessageServiceImple implements ChatMessageService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired private ChatRoomRepository chatRoomRepository;
 
     @Override
     public UserChatContactData getChatParticipants(Long id, String loggedInUserId) {
@@ -290,5 +295,48 @@ public class ChatMessageServiceImple implements ChatMessageService {
             e.printStackTrace();
             return List.of();
         }
+    }
+
+    @Override
+    public List<ChatMessageDtoForGroup> getChatsForGroup(Long roomId, String loggedInUserId) {
+        final ChatRoom chatRoom = this.chatRoomRepository.findById(roomId).orElseThrow(
+                () -> new ResourceNotFoundException("ChatRoom", "Id", roomId.toString())
+        );
+        final User loginUser = this.userRepository.findByEmail(loggedInUserId).orElseThrow(
+                () -> new ResourceNotFoundException("User", "Email", loggedInUserId)
+        );
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+
+        List<ChatMessage> chatMessageList = this.chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(roomId);
+        List<ChatMessageDtoForGroup> list = new ArrayList<>();
+try{
+        for (ChatMessage chatMessage : chatMessageList) {
+            ChatMessageDtoForGroup chatMessageDto = new ChatMessageDtoForGroup();
+            chatMessageDto.setId(chatMessage.getId().toString());
+            chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
+            chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
+           // chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
+            chatMessageDto.setMessage(chatMessage.getMessage());
+            chatMessageDto.setStatus(chatMessage.getStatus());
+
+            String formattedDate;
+            if (chatMessage.getTimestamp() != null) {
+                formattedDate = chatMessage.getTimestamp().format(formatter);
+                chatMessageDto.setTimestamp(formattedDate);
+            } else {
+                chatMessageDto.setTimestamp("");
+            }
+            chatMessageDto.setSender(chatMessage.getSenderId().getId().equalsIgnoreCase(loginUser.getId()) ? "You" : chatMessage.getSenderId().getName());
+            chatMessageDto.setSenderUser(ChatRoomMapper.userToUserDto(chatMessage.getSenderId()));
+            //chatMessageDto.setReceiverUser(ChatRoomMapper.userToUserDto(chatMessage.getReceiverId()));
+            list.add(chatMessageDto);
+        }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return List.of();
+        }
+
+        return list;
     }
 }
