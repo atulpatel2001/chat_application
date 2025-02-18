@@ -32,13 +32,18 @@ public class MessageConsumer {
     @KafkaListener(topics = "single_chat_messages", groupId = "chat_app")
     public void listen(String message) {
         System.out.println("Received message: " + message);
-        saveMessage(message, "single");
+        saveMessage(message);
+    }
+
+    @KafkaListener(topics = "group_chat_messages", groupId = "chat_app")
+    public void listenForGroup(String message) {
+        System.out.println("Received message: " + message);
     }
 
 
 
 
-    private void saveMessage(String message, String chatType) {
+    private void saveMessage(String message) {
         JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
         String sender = jsonObject.get("senderId").getAsString();
         String chatRoomId = jsonObject.get("chatRoomId").getAsString();

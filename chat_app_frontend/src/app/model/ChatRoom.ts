@@ -44,4 +44,13 @@ export interface ChatMessageDto {
      sender: string;
      senderUser:UserDto;
      receiverUser:UserDto;
+     seenBy:MessagesStatusDto[];
+
    }
+
+
+export interface MessagesStatusDto{
+      id:string;
+      user:string;  
+      seenAt:string;  
+}

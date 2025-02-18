@@ -2,6 +2,7 @@ package org.scm.chat.chat.controller;
 
 
 import org.scm.chat.chat.dto.*;
+import org.scm.chat.chat.mapper.ChatRoomMapper;
 import org.scm.chat.chat.model.ChatMessage;
 import org.scm.chat.chat.repository.ChatMessageRepository;
 import org.scm.chat.chat.service.ChatMessageService;
@@ -30,6 +31,9 @@ public class MessageController {
 
     @Value("${chat.kafka.single}")
     private String topic;
+
+    @Value("${chat.kafka.group}")
+    private String topic2;
     @Autowired
     private MessageProducer messageProducer;
 
@@ -97,7 +101,34 @@ public class MessageController {
 //    @SendTo("/topic/public")
     public void sendGroupMessage(@RequestBody KafkaMessageDto message) {
         message.setTimestamp(LocalDateTime.now().toString());
-        messagingTemplate.convertAndSend("/topic/public/group/" + message.getChatRoomId(), message);
-        messageProducer.sendMessage(topic, message);
+         User user = this.userRepository.findById(message.getSenderId()).orElseThrow(() ->
+                new ResourceNotFoundException("User", "User Id", message.getSenderId()));
+         ChatMessageDtoForGroup entity = ChatRoomMapper.toEntity(message, user);
+        messagingTemplate.convertAndSend("/topic/public/group/" + message.getChatRoomId(), entity);
+        messageProducer.sendMessage(topic2, message);
+    }
+
+
+    @MessageMapping("/chat.sendTyping_g")
+    public void typingGroup(@Payload TypingMessage typingMessage) {
+
+        User user = this.userRepository.findById(typingMessage.getUserId()).orElseThrow(() ->
+                new ResourceNotFoundException("User", "user Id", typingMessage.getUserId()));
+        System.out.println("Typing message: " + typingMessage);
+        messagingTemplate.convertAndSend("/topic/public/typing/group" + typingMessage.getChatRoomId(),
+                new TypingNotification(typingMessage.getUserId(), typingMessage.getChatRoomId(), user.getName(), typingMessage.isTyping()));
+    }
+
+
+    @MessageMapping("/chat.updateStatus_g")
+    public void updateMessageStatusForGroup(@Payload ChatStatusUpdateDto messageDto) {
+        try {
+           // chatMessageRepository.updateMessageStatus(messageDto.getChatRoomId(), messageDto.getUserId(), messageDto.getStatus().equalsIgnoreCase("READ")? ChatMessage.MessageStatus.READ: ChatMessage.MessageStatus.DELIVERED);
+
+            messagingTemplate.convertAndSend("/topic/public/status/update/group/" + messageDto.getChatRoomId(),
+                    messageDto);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

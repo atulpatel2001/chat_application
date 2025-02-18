@@ -1,14 +1,16 @@
 'use client'
 import Navbar from '@/app/component/Navbar';
 import { ChatMessageDto, ChatRoomDto, UserDto } from '@/app/model/ChatRoom';
+import { TypingNotification } from '@/app/model/TypingNotification';
 import { logout, User } from '@/app/redux/slice/authSlice';
 import { getChats, getRooms } from '@/app/services/chat/GroupService';
 import StompClientUtil from '@/app/services/chat/WebSocketService';
 import { getToken, getUserDetail } from '@/app/services/TokenService';
+import { stringToChatDisplayFormate } from '@/app/util/DateFormate';
 import { StompHeaders } from '@stomp/stompjs';
 import { CheckIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 
@@ -22,10 +24,17 @@ const GroupChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginUser, setLoginUser] = useState<User | null>(null);
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
-   let baseUrl = process.env.NEXT_PUBLIC_BACKEND+"chat-websocket";
-    const stompClient = new StompClientUtil(baseUrl);
-    const [token, setToken] = useState("");
-
+  let baseUrl = process.env.NEXT_PUBLIC_BACKEND + "chat-websocket";
+  const stompClient = new StompClientUtil(baseUrl);
+  const [token, setToken] = useState("");
+  // const [isTyping, setIsTyping] = useState<boolean>(false);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [typingMessage,setTypingMessage]=useState<TypingNotification>({
+    chatRoomId:"",
+    userId:"",
+    typing:false,
+    userName:""
+  });
 
   const handleToggleParticipants = () => {
     setShowParticipants(!showParticipants);
@@ -36,7 +45,7 @@ const GroupChat = () => {
         setIsLoading(true);
 
         // Fetch Rooms and Contacts in Parallel
-        const [roomsResponse, user,token_] = await Promise.all([getRooms(), getUserDetail(),getToken()]);
+        const [roomsResponse, user, token_] = await Promise.all([getRooms(), getUserDetail(), getToken()]);
         // Handle Rooms Response
         if (roomsResponse?.success) {
           setChatRoom(roomsResponse.message);
@@ -69,6 +78,131 @@ const GroupChat = () => {
     router.push("/chat/login");
   };
 
+
+
+
+  useEffect(() => {
+    if (!selectedGroup?.id) return;
+
+    /**
+     * handle message form websocket
+     * @param message 
+     */
+    const handleMessage = (message: any) => {
+      console.log("message--->" + message);
+
+      console.log(message.chatRoomId)
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: message.id || "",
+          chatRoomId: message.chatRoomId || selectedGroup.id,
+          senderId: message.senderId || "",
+          receiverId: "",
+          message: message.message || "",
+          status: message.status || "SENT",
+          timestamp: stringToChatDisplayFormate(message.timestamp) || "NOW",
+          sender: loginUser?.id === message.senderId ? "You" : "Sender",
+          receiverUser: message.senderUser,
+          senderUser: message.senderUser,
+          seenBy:[]
+
+        },
+      ]);
+    };
+
+
+    /**
+     * call websocket for update status sent to deliver
+     * @param message 
+     */
+    const handleStatusMessageUpdate = (message: any) => {
+
+        if(selectedGroup){
+          if(message){
+            // messages.forEach((msg) => {
+             if(message.senderId != loginUser?.id){
+              // setTimeout(() => {
+                stompClient.updateMessageStatus(
+                  "/app/chat.updateStatus_g",
+                  { chatRoomId: selectedGroup.id, userId: loginUser?.id, status: "DELIVERED"},
+                  {
+                    Authorization: "Bearer " + token,
+                  } as StompHeaders
+                );
+              // }, 2000);
+             }
+            // })
+          }
+        }
+    }
+
+    /**
+     * this for suscribe for typing
+     * @param message 
+     */
+    const handleTyping_ = (message: any) => {
+      console.log("Typing message--->" + message);
+      if (loginUser?.id !== message.userId) {
+        setTypingMessage(message);
+      }
+    }
+
+    /**
+     * in this method add suscribe method for getmessage and for typing 
+     */
+    const initializeWebSocket = () => {
+
+      stompClient.connect(
+        () => {
+          stompClient.subscribeToUserQueue("/topic/public/group/" + selectedGroup.id, (messages) => {
+            handleMessage(messages);
+            handleStatusMessageUpdate(messages);
+            console.log(messages)
+
+          });
+
+
+          stompClient.subscribeForTyping("/topic/public/typing/group" + selectedGroup.id, (messages) => {
+            handleTyping_(messages);
+          });
+
+          stompClient.subscribeForTyping("/topic/public/status/update/group/" + selectedGroup.id, (messages) => {
+            console.log("Deliverd status "+messages)
+            // setMessages((prevMessages) =>
+            //   prevMessages.map((msg) =>
+            //     msg.status != 'READ' ? { ...msg, status: 'DELIVERED' } : msg
+            //   )
+            // );
+          });
+
+
+          // stompClient.subscribeForTyping("/topic/public/status/update/sent/" + selectedChat.roomId, (messages) => {
+          //   console.log("Read status "+messages)
+          //   setMessages((prevMessages) =>
+          //     prevMessages.map((msg) => ({
+          //       ...msg,
+          //       status: 'READ'
+          //     }))
+          //   );
+          // });
+
+
+        },
+        (error) => console.error("WebSocket connection error:", error)
+      );
+    };
+
+    initializeWebSocket();
+
+
+
+    return () => {
+      stompClient.disconnect();
+    };
+  }, [selectedGroup]);
+
+
   const setSelectedGroupDetail = useCallback(async (group: ChatRoomDto) => {
     setSelectedGroup(group);
 
@@ -88,27 +222,48 @@ const GroupChat = () => {
     }
     setNewMessage("");
   }, [loginUser]);
-  // const handleSendMessage = () => {
-  //   if (newMessage.trim()) {
-  //     setMessages([...messages, { id: Date.now(), user: 'You', text: newMessage, isSender: true }]);
-  //     setNewMessage('');
-  //   }
-  // };
 
 
-   const handleSendMessage = () => {
-      if (newMessage.trim() === "") return;
+
+  const handleSendMessage = () => {
+    if (newMessage.trim() === "") return;
+    stompClient.connect(
+      () => {
+        console.log("Connected to WebSocket");
+        stompClient.sendMessage(
+          "/app/chat.sendMessage_g",
+          {
+            chatRoomId: selectedGroup?.id,
+            message: newMessage,
+            status: "SENT",
+            senderId: loginUser?.id,
+            timestamp: "",
+          },
+          {
+            Authorization: "Bearer " + token,
+          } as StompHeaders
+        );
+      },
+      (error) => console.error("WebSocket connection error:", error)
+    );
+
+    setNewMessage("");
+  };
+
+
+
+  const handleTyping = () => {
+    if (newMessage.trim() === "") return;
+    if (!typingMessage.typing) {
       stompClient.connect(
         () => {
           console.log("Connected to WebSocket");
-          stompClient.sendMessage(
-            "/app/chat.sendMessage_g",
+          stompClient.isAnyOneIsTyping(
+            "/app/chat.sendTyping_g",
             {
               chatRoomId: selectedGroup?.id,
-              message: newMessage,
-              status: "SENT",
-              senderId: loginUser?.id,
-              timestamp: "",
+              userId: loginUser?.id,
+              typing: true,
             },
             {
               Authorization: "Bearer " + token,
@@ -117,9 +272,32 @@ const GroupChat = () => {
         },
         (error) => console.error("WebSocket connection error:", error)
       );
-  
-      setNewMessage("");
+    }
+
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+
+
+    typingTimeout.current = setTimeout(() => {
+      console.log("time out")
+      stompClient.isAnyOneIsTyping(
+        "/app/chat.sendTyping_g",
+        {
+          chatRoomId: selectedGroup?.id,
+          userId: loginUser?.id,
+          typing: false,
+        },
+        {
+          Authorization: "Bearer " + token,
+        } as StompHeaders
+      );
+    }, 5000);
+    return () => {
+      stompClient.disconnect();
     };
+  };
 
   return (
     <>
@@ -175,61 +353,61 @@ const GroupChat = () => {
               </div>
               {/* Messages Section */}
               <div className="flex-1 mb-4 overflow-y-auto">
-                {messages ? (messages.map((msg) => (
-               <div
-               key={msg.id}
-               className={`flex items-center mb-3 ${msg.sender === "You" ? "justify-end" : "justify-start"}`}
-             >
-               <div
-                 className={`mr-3 h-10 w-10 rounded-full flex items-center justify-center font-bold text-white ${msg.sender === "You" ? "bg-green-500" : "bg-gray-300"}`}
-               >
-                 <img
-                   src={msg.senderUser.profilePic || ""}
-                   alt={msg.senderUser.name}
-                   className="w-10 h-10 rounded-full"
-                 />
-               </div>
-               <div
-                 className={`relative p-3 rounded-2xl shadow-md ${msg.sender === "You" ? "bg-blue-500 text-white" : "bg-blue-100"} hover:opacity-90`}
-               >
-                 {/* Message Text */}
-                 <div>
-                   {msg.message}
-                   <span className="ml-2 text-xs opacity-75">{msg.timestamp}</span>
-                   
-                   {/* Display Sender's Name on Hover */}
-                   {msg.sender !== "You" && (
-                     <span className="absolute left-0 top-[-20px] text-sm font-semibold text-gray-700 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                       {msg.senderUser.name}
-                     </span>
-                   )}
-             
-                   {msg.sender === "You" && (
-                     <>
-                       {msg.status === "SENT" && (
-                         <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
-                       )}
-             
-                       {msg.status === "DELIVERED" && (
-                         <>
-                           <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
-                           <CheckIcon className="w-4 h-4 inline -ml-2 text-gray-400" />
-                         </>
-                       )}
-             
-                       {msg.status === "READ" && (
-                         <>
-                           <CheckIcon className="w-4 h-4 inline ml-2 text-green-500" />
-                           <CheckIcon className="w-4 h-4 inline -ml-2 text-green-500" />
-                         </>
-                       )}
-                     </>
-                   )}
-                 </div>
-               </div>
-             </div>
-             
-                
+                {messages ? (messages.map((msg,index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center mb-3 ${msg.sender === "You" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`mr-3 h-10 w-10 rounded-full flex items-center justify-center font-bold text-white ${msg.sender === "You" ? "bg-green-500" : "bg-gray-300"}`}
+                    >
+                      <img
+                        src={msg.senderUser.profilePic || ""}
+                        alt={msg.senderUser.name}
+                        className="w-10 h-10 rounded-full"
+                      />
+                    </div>
+                    <div
+                      className={`relative p-3 rounded-2xl shadow-md ${msg.sender === "You" ? "bg-blue-500 text-white" : "bg-blue-100"} hover:opacity-90`}
+                    >
+                      {/* Message Text */}
+                      <div>
+                        {msg.message}
+                        <span className="ml-2 text-xs opacity-75">{msg.timestamp}</span>
+
+                        {/* Display Sender's Name on Hover */}
+                        {msg.sender !== "You" && (
+                          <span className="absolute left-0 top-[-20px] text-sm font-semibold text-gray-700 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                            {msg.senderUser.name}
+                          </span>
+                        )}
+
+                        {msg.sender === "You" && (
+                          <>
+                            {msg.status === "SENT" && (
+                              <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                            )}
+
+                            {msg.status === "DELIVERED" && (
+                              <>
+                                <CheckIcon className="w-4 h-4 inline ml-2 text-gray-400" />
+                                <CheckIcon className="w-4 h-4 inline -ml-2 text-gray-400" />
+                              </>
+                            )}
+
+                            {msg.status === "READ" && (
+                              <>
+                                <CheckIcon className="w-4 h-4 inline ml-2 text-green-500" />
+                                <CheckIcon className="w-4 h-4 inline -ml-2 text-green-500" />
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+
                 ))
                 ) : (
                   <div className="flex-1 h-full flex flex-col justify-between bg-white shadow-xl rounded-2xl m-4 p-4">
@@ -239,17 +417,22 @@ const GroupChat = () => {
               </div>
 
               {/* Send Message Input Section */}
-              <div className="flex items-center">
+              {typingMessage.typing &&<span className='ml-2 text-sm opacity-90 bg-white text-green-500' style={{fontWeight:'bold'}}>{typingMessage.userName} is typing</span>}
+              <div className="flex items-center mt-2">
+                
                 <input
                   type="text"
                   className="flex-1 mr-3 border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  value={newMessage}       
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
                 />
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition duration-300"
-               onClick={handleSendMessage}
+                  onClick={handleSendMessage}
                 >
                   Send
                 </button>

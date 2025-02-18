@@ -317,7 +317,7 @@ try{
             chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
            // chatMessageDto.setReceiverId(chatMessage.getReceiverId().getId());
             chatMessageDto.setMessage(chatMessage.getMessage());
-            chatMessageDto.setStatus(chatMessage.getStatus());
+            chatMessageDto.setStatus(String.valueOf(chatMessage.getStatus()));
 
             String formattedDate;
             if (chatMessage.getTimestamp() != null) {

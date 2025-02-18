@@ -6,6 +6,7 @@ import org.scm.chat.model.BaseEntity;
 import org.scm.chat.user.model.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -43,7 +44,7 @@ public class ChatMessage extends BaseEntity{
     private LocalDateTime timestamp;
 
     @Enumerated(EnumType.STRING)
-    private MessageStatus status = MessageStatus.SENT;
+    private MessageStatus status = ChatMessage.MessageStatus.SENT;
 
     public enum MessageStatus {
         SENT,
@@ -51,7 +52,8 @@ public class ChatMessage extends BaseEntity{
         READ
     }
 
-
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<MessagesStatus> seenBy;
 
 }
 
