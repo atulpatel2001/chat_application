@@ -28,6 +28,8 @@ public class MessagesStatus extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;  // The user who saw the message
 
-    @Column(nullable = false)
+
     private LocalDateTime seenAt;  // When the user saw the message
+
+    private String status;
 }

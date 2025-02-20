@@ -52,7 +52,7 @@ public class ChatMessage extends BaseEntity{
         READ
     }
 
-    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<MessagesStatus> seenBy;
 
 }

@@ -29,11 +29,11 @@ const GroupChat = () => {
   const [token, setToken] = useState("");
   // const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
-  const [typingMessage,setTypingMessage]=useState<TypingNotification>({
-    chatRoomId:"",
-    userId:"",
-    typing:false,
-    userName:""
+  const [typingMessage, setTypingMessage] = useState<TypingNotification>({
+    chatRoomId: "",
+    userId: "",
+    typing: false,
+    userName: ""
   });
 
   const handleToggleParticipants = () => {
@@ -105,7 +105,7 @@ const GroupChat = () => {
           sender: loginUser?.id === message.senderId ? "You" : "Sender",
           receiverUser: message.senderUser,
           senderUser: message.senderUser,
-          seenBy:[]
+          seenBy: []
 
         },
       ]);
@@ -118,23 +118,23 @@ const GroupChat = () => {
      */
     const handleStatusMessageUpdate = (message: any) => {
 
-        if(selectedGroup){
-          if(message){
-            // messages.forEach((msg) => {
-             if(message.senderId != loginUser?.id){
-              // setTimeout(() => {
-                stompClient.updateMessageStatus(
-                  "/app/chat.updateStatus_g",
-                  { chatRoomId: selectedGroup.id, userId: loginUser?.id, status: "DELIVERED"},
-                  {
-                    Authorization: "Bearer " + token,
-                  } as StompHeaders
-                );
-              // }, 2000);
-             }
-            // })
+      if (selectedGroup) {
+        if (message) {
+          // messages.forEach((msg) => {
+          if (message.senderId != loginUser?.id) {
+            // setTimeout(() => {
+            stompClient.updateMessageStatus(
+              "/app/chat.updateStatus_g",
+              { chatRoomId: selectedGroup.id, userId: loginUser?.id, status: "DELIVERED" },
+              {
+                Authorization: "Bearer " + token,
+              } as StompHeaders
+            );
+            // }, 2000);
           }
+          // })
         }
+      }
     }
 
     /**
@@ -147,6 +147,31 @@ const GroupChat = () => {
         setTypingMessage(message);
       }
     }
+
+
+    // const handleUpdatStatus = (message: any) => {
+    //   setMessages((prevMessages) => {
+    //     // Extract messages with ID (existing messages)
+    //     const messagesWithId = message.messageDtoForGroupList;
+
+    //     // Extract messages without ID (temporary messages)
+    //     const messagesWithoutId = prevMessages.filter(msg => !msg.id);
+
+    //     // Update messages without ID to include user information
+    //     const updatedMessagesWithoutId = messagesWithoutId.map(msg => ({
+    //       ...msg,
+    //       seenBy: msg.seenBy.map(seen => ({
+    //         ...seen,
+    //         user: message.userDto, // Ensure message.userDto is defined
+    //       })),
+    //     }));
+    //     console.log(updatedMessagesWithoutId);
+    //     return [...messagesWithId, ...updatedMessagesWithoutId];
+    //   });
+
+    //   console.log(messages);
+    // }
+
 
     /**
      * in this method add suscribe method for getmessage and for typing 
@@ -168,12 +193,10 @@ const GroupChat = () => {
           });
 
           stompClient.subscribeForTyping("/topic/public/status/update/group/" + selectedGroup.id, (messages) => {
-            console.log("Deliverd status "+messages)
-            // setMessages((prevMessages) =>
-            //   prevMessages.map((msg) =>
-            //     msg.status != 'READ' ? { ...msg, status: 'DELIVERED' } : msg
-            //   )
-            // );
+            console.log("Deliverd status ")
+            console.log(messages);
+            // handleUpdatStatus(messages);
+
           });
 
 
@@ -353,7 +376,7 @@ const GroupChat = () => {
               </div>
               {/* Messages Section */}
               <div className="flex-1 mb-4 overflow-y-auto">
-                {messages ? (messages.map((msg,index) => (
+                {messages ? (messages.map((msg, index) => (
                   <div
                     key={index}
                     className={`flex items-center mb-3 ${msg.sender === "You" ? "justify-end" : "justify-start"}`}
@@ -417,14 +440,14 @@ const GroupChat = () => {
               </div>
 
               {/* Send Message Input Section */}
-              {typingMessage.typing &&<span className='ml-2 text-sm opacity-90 bg-white text-green-500' style={{fontWeight:'bold'}}>{typingMessage.userName} is typing</span>}
+              {typingMessage.typing && <span className='ml-2 text-sm opacity-90 bg-white text-green-500' style={{ fontWeight: 'bold' }}>{typingMessage.userName} is typing</span>}
               <div className="flex items-center mt-2">
-                
+
                 <input
                   type="text"
                   className="flex-1 mr-3 border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Type a message..."
-                  value={newMessage}       
+                  value={newMessage}
                   onChange={(e) => {
                     setNewMessage(e.target.value);
                     handleTyping();

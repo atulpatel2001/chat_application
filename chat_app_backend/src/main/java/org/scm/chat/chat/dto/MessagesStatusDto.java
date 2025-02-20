@@ -1,14 +1,13 @@
 package org.scm.chat.chat.dto;
+import lombok.Builder;
+import lombok.Data;
+import lombok.ToString;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import org.scm.chat.chat.model.ChatMessage;
-import org.scm.chat.user.model.User;
 
 import java.time.LocalDateTime;
-
+@Data
+@Builder
+@ToString
 public class MessagesStatusDto {
 
     private Long id;
@@ -16,4 +15,5 @@ public class MessagesStatusDto {
     private UserDto user;  // The user who saw the message
 
     private LocalDateTime seenAt;  // When the u
+    private String status;
 }

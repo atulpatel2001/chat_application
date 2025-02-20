@@ -110,4 +110,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Transactional
     @Query("UPDATE ChatMessage m SET m.status = 'READ' WHERE m.chatRoom.id = :roomId AND m.receiverId.id = :userId AND m.status <> 'READ'")
     void updateMessageStatusToRead(@Param("roomId") String roomId, @Param("userId") String userId);
+
+
+    @Query("select m from ChatMessage m WHERE m.chatRoom.id = :roomId AND m.status <> 'READ' And m.status <> 'DELIVERED' ")
+    List<ChatMessage> findByRoomId(Long roomId);
 }

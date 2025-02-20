@@ -1,8 +1,6 @@
 package org.scm.chat.chat.service;
 
-import org.scm.chat.chat.dto.ChatMessageDto;
-import org.scm.chat.chat.dto.ChatMessageDtoForGroup;
-import org.scm.chat.chat.dto.UserChatContactData;
+import org.scm.chat.chat.dto.*;
 
 import java.util.List;
 
@@ -19,6 +17,7 @@ public interface ChatMessageService {
 
     List<ChatMessageDtoForGroup> getChatsForGroup(Long roomId, String loggedInUserId);
 
+    UpdateStatusDto updateStatusSentToDeliveredAddSeenBy(ChatStatusUpdateDto chatStatusUpdateDto);
 
 
 }

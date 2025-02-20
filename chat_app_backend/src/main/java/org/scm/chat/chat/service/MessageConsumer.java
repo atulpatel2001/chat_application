@@ -38,11 +38,36 @@ public class MessageConsumer {
     @KafkaListener(topics = "group_chat_messages", groupId = "chat_app")
     public void listenForGroup(String message) {
         System.out.println("Received message: " + message);
+        saveGroupMessage(message);
     }
 
 
 
+private void  saveGroupMessage(String message){
+    JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
+    String sender = jsonObject.get("senderId").getAsString();
+    String chatRoomId = jsonObject.get("chatRoomId").getAsString();
+    String content = jsonObject.get("message").getAsString();
+    String status = jsonObject.get("status").getAsString();
+    JsonElement jsonElement = jsonObject.get("timestamp");
+    String timestampStr = jsonElement.getAsString();
 
+    // Convert String to LocalDateTime
+    LocalDateTime dateTime = LocalDateTime.parse(timestampStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    final User senderUser = this.userRepository.findById(sender).orElseThrow(() -> new ResourceNotFoundException("User", "User Id", sender));
+    final ChatRoom chatRoom = this.chatRoomRepository.findById(Long.valueOf(chatRoomId)).orElseThrow(() -> new ResourceNotFoundException("Chat Room", "Chat Room Id", chatRoomId));
+
+
+    ChatMessage build = ChatMessage.builder().message(content)
+            .senderId(senderUser)
+            .chatRoom(chatRoom)
+            .timestamp(dateTime)
+            .status(status.equalsIgnoreCase("SENT")? ChatMessage.MessageStatus.SENT: ChatMessage.MessageStatus.DELIVERED)
+            .build();
+    ChatMessage save = chatMessageRepository.save(build);
+    System.out.println(save.toString());
+
+}
     private void saveMessage(String message) {
         JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
         String sender = jsonObject.get("senderId").getAsString();

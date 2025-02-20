@@ -1,14 +1,15 @@
 package org.scm.chat.chat.service.imple;
 
-import org.scm.chat.chat.dto.ChatDisplayDto;
-import org.scm.chat.chat.dto.ChatMessageDto;
-import org.scm.chat.chat.dto.ChatMessageDtoForGroup;
-import org.scm.chat.chat.dto.UserChatContactData;
+import jakarta.transaction.Transactional;
+import org.scm.chat.chat.dto.*;
 import org.scm.chat.chat.mapper.ChatRoomMapper;
 import org.scm.chat.chat.model.ChatMessage;
+import org.scm.chat.chat.model.ChatParticipant;
 import org.scm.chat.chat.model.ChatRoom;
+import org.scm.chat.chat.model.MessagesStatus;
 import org.scm.chat.chat.repository.ChatMessageRepository;
 import org.scm.chat.chat.repository.ChatRoomRepository;
+import org.scm.chat.chat.repository.MessageStatusRepository;
 import org.scm.chat.chat.service.ChatMessageService;
 import org.scm.chat.contact.model.Contact;
 import org.scm.chat.contact.repository.ContactRepository;
@@ -40,6 +41,8 @@ public class ChatMessageServiceImple implements ChatMessageService {
     private UserRepository userRepository;
 
     @Autowired private ChatRoomRepository chatRoomRepository;
+
+    @Autowired private MessageStatusRepository messagesStatusRepository;
 
     @Override
     public UserChatContactData getChatParticipants(Long id, String loggedInUserId) {
@@ -297,6 +300,8 @@ public class ChatMessageServiceImple implements ChatMessageService {
         }
     }
 
+
+    @Transactional
     @Override
     public List<ChatMessageDtoForGroup> getChatsForGroup(Long roomId, String loggedInUserId) {
         final ChatRoom chatRoom = this.chatRoomRepository.findById(roomId).orElseThrow(
@@ -328,7 +333,8 @@ try{
             }
             chatMessageDto.setSender(chatMessage.getSenderId().getId().equalsIgnoreCase(loginUser.getId()) ? "You" : chatMessage.getSenderId().getName());
             chatMessageDto.setSenderUser(ChatRoomMapper.userToUserDto(chatMessage.getSenderId()));
-            //chatMessageDto.setReceiverUser(ChatRoomMapper.userToUserDto(chatMessage.getReceiverId()));
+             List<MessagesStatusDto> messagesStatusDtos = ChatRoomMapper.messagesStatusToMessagesStatusDtoList(chatMessage.getSeenBy());
+            chatMessageDto.setSeenBy(messagesStatusDtos);
             list.add(chatMessageDto);
         }
         }
@@ -338,5 +344,63 @@ try{
         }
 
         return list;
+    }
+
+    @Transactional
+    @Override
+    public UpdateStatusDto updateStatusSentToDeliveredAddSeenBy(ChatStatusUpdateDto chatStatusUpdateDto) {
+        final User user = this.userRepository.findById(chatStatusUpdateDto.getUserId()).orElseThrow(
+                () -> new ResourceNotFoundException("User", "Id", chatStatusUpdateDto.getUserId())
+        );
+
+        final ChatRoom chatRoom = this.chatRoomRepository.findById(Long.valueOf(chatStatusUpdateDto.getChatRoomId())).orElseThrow(
+                () -> new ResourceNotFoundException("ChatRoom", "Id", chatStatusUpdateDto.getChatRoomId())
+        );
+
+        final List<ChatMessage> byRoomId = this.chatMessageRepository.findByRoomId(Long.valueOf(chatStatusUpdateDto.getChatRoomId()));
+        final List<ChatParticipant> participants = chatRoom.getParticipants();
+        if (!byRoomId.isEmpty()){
+            for (ChatMessage chatMessage : byRoomId) {
+                if(chatMessage.getSenderId() != user && !chatMessage.getSeenBy().contains(user)){
+                     MessagesStatus messagesStatus = MessagesStatus.builder().chatMessage(chatMessage)
+                             .status(String.valueOf(ChatMessage.MessageStatus.DELIVERED))
+                            .user(user).build();
+                     this.messagesStatusRepository.save(messagesStatus);
+                     if (Math.ceil(((double) participants.size() /2)) >= chatMessage.getSeenBy().size()){
+                         chatMessage.setStatus(ChatMessage.MessageStatus.DELIVERED);
+                         this.chatMessageRepository.save(chatMessage);
+                     }
+
+                }
+            }
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+
+        List<ChatMessage> chatMessageList = this.chatMessageRepository.findByChatRoomIdOrderByCreatedAtAsc(chatRoom.getId());
+        List<ChatMessageDtoForGroup> list = new ArrayList<>();
+
+            for (ChatMessage chatMessage : chatMessageList) {
+                ChatMessageDtoForGroup chatMessageDto = new ChatMessageDtoForGroup();
+                chatMessageDto.setId(chatMessage.getId().toString());
+                chatMessageDto.setSenderId(chatMessage.getSenderId().getId());
+                chatMessageDto.setChatRoomId(String.valueOf(chatMessage.getChatRoom().getId()));
+                chatMessageDto.setMessage(chatMessage.getMessage());
+                chatMessageDto.setStatus(String.valueOf(chatMessage.getStatus()));
+
+                String formattedDate;
+                if (chatMessage.getTimestamp() != null) {
+                    formattedDate = chatMessage.getTimestamp().format(formatter);
+                    chatMessageDto.setTimestamp(formattedDate);
+                } else {
+                    chatMessageDto.setTimestamp("");
+                }
+                chatMessageDto.setSender(chatMessage.getSenderId().getId().equalsIgnoreCase(user.getId()) ? "You" : chatMessage.getSenderId().getName());
+                chatMessageDto.setSenderUser(ChatRoomMapper.userToUserDto(chatMessage.getSenderId()));
+                List<MessagesStatusDto> messagesStatusDtos = ChatRoomMapper.messagesStatusToMessagesStatusDtoList(chatMessage.getSeenBy());
+                chatMessageDto.setSeenBy(messagesStatusDtos);
+                list.add(chatMessageDto);
+            }
+
+        return UpdateStatusDto.builder().messageDtoForGroupList(list).userDto(ChatRoomMapper.userToUserDto(user)).build();
     }
 }

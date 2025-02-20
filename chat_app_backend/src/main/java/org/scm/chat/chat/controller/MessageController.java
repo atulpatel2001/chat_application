@@ -123,10 +123,9 @@ public class MessageController {
     @MessageMapping("/chat.updateStatus_g")
     public void updateMessageStatusForGroup(@Payload ChatStatusUpdateDto messageDto) {
         try {
-           // chatMessageRepository.updateMessageStatus(messageDto.getChatRoomId(), messageDto.getUserId(), messageDto.getStatus().equalsIgnoreCase("READ")? ChatMessage.MessageStatus.READ: ChatMessage.MessageStatus.DELIVERED);
-
+             UpdateStatusDto updateStatusDto = chatMessageService.updateStatusSentToDeliveredAddSeenBy(messageDto);
             messagingTemplate.convertAndSend("/topic/public/status/update/group/" + messageDto.getChatRoomId(),
-                    messageDto);
+                    updateStatusDto);
         } catch (Exception e) {
             e.printStackTrace();
         }

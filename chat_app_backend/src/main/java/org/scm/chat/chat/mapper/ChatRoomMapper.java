@@ -4,6 +4,7 @@ import org.scm.chat.chat.dto.*;
 import org.scm.chat.chat.model.ChatMessage;
 import org.scm.chat.chat.model.ChatParticipant;
 import org.scm.chat.chat.model.ChatRoom;
+import org.scm.chat.chat.model.MessagesStatus;
 import org.scm.chat.contact.dto.ContactDto;
 import org.scm.chat.contact.model.Contact;
 import org.scm.chat.user.model.User;
@@ -74,17 +75,43 @@ public class ChatRoomMapper {
             return null;
         } else {
             ChatMessageDtoForGroup.ChatMessageDtoForGroupBuilder dtoForGroupBuilder = ChatMessageDtoForGroup.builder();
-//            dtoForGroupBuilder.id(kafkaMessageDto.getId());
             dtoForGroupBuilder.chatRoomId(kafkaMessageDto.getChatRoomId());
             dtoForGroupBuilder.senderId(kafkaMessageDto.getSenderId());
-//            dtoForGroupBuilder.receiverId(kafkaMessageDto.getReceiverId() != null ? kafkaMessageDto.getReceiverId() : null);
             dtoForGroupBuilder.message(kafkaMessageDto.getMessage());
             dtoForGroupBuilder.timestamp(kafkaMessageDto.getTimestamp());
             dtoForGroupBuilder.status(ChatMessage.MessageStatus.SENT.name());
-//            dtoForGroupBuilder.sender("you");
             dtoForGroupBuilder.senderUser(userToUserDto(user));
-//            dtoForGroupBuilder.receiverUser(null);
             return dtoForGroupBuilder.build();
+        }
+    }
+
+
+    public static  MessagesStatusDto messagesStatusToMessagesStatusDto(MessagesStatus messagesStatus){
+        if (messagesStatus == null) {
+            return null;
+        } else {
+            MessagesStatusDto.MessagesStatusDtoBuilder messagesStatusDtoBuilder = MessagesStatusDto.builder();
+            messagesStatusDtoBuilder.id(messagesStatus.getId());
+            messagesStatusDtoBuilder.user(userToUserDto(messagesStatus.getUser()));
+            messagesStatusDtoBuilder.seenAt(messagesStatus.getSeenAt());
+            return messagesStatusDtoBuilder.build();
+        }
+    }
+
+
+    public static  List<MessagesStatusDto> messagesStatusToMessagesStatusDtoList(List<MessagesStatus> messagesStatus){
+        if (messagesStatus.isEmpty()) {
+            return List.of();
+        } else {
+            List<MessagesStatusDto> messagesStatusDto= new ArrayList<>();
+            for (MessagesStatus messagesStatus1 : messagesStatus) {
+                MessagesStatusDto.MessagesStatusDtoBuilder messagesStatusDtoBuilder = MessagesStatusDto.builder();
+                messagesStatusDtoBuilder.id(messagesStatus1.getId());
+                messagesStatusDtoBuilder.user(userToUserDto(messagesStatus1.getUser()));
+                messagesStatusDtoBuilder.seenAt(messagesStatus1.getSeenAt());
+               messagesStatusDto.add(messagesStatusDtoBuilder.build());
+            }
+          return messagesStatusDto;
         }
     }
 }
