@@ -2,7 +2,7 @@
 import Navbar from '@/app/component/Navbar';
 import { login, thirdPartyLogin } from '@/app/services/AuthService';
 
-import {useState } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
 interface ValidationError {
@@ -18,19 +18,19 @@ const LoginForm = () => {
     const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
     const [errors, setErrors] = useState<ValidationError>({});
     const [loading, setLoading] = useState(false);
-  
+
 
 
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
-        const response = await login(formData,dispatch);
+        const response = await login(formData, dispatch);
         console.log(response)
         if (response != undefined) {
             if (response.success == true) {
                 toast.success(response.message);
-                window.location.href="/chat/user/dashboard";
+                window.location.href = "/chat/user/dashboard";
             } else {
                 if (response.field == true) {
                     setErrors(response.errors);
@@ -51,11 +51,11 @@ const LoginForm = () => {
     };
 
 
-    const handleThirdPartyAuth = async (providerType:string) => {
-        const response=await thirdPartyLogin(providerType)
+    const handleThirdPartyAuth = async (providerType: string) => {
+        const response = await thirdPartyLogin(providerType)
         console.log(response);
         setLoading(true);
-        
+
     };
 
 
@@ -66,9 +66,11 @@ const LoginForm = () => {
             [name]: value,
         }));
     };
-      
-    return (<><Navbar/>
-        <div id="content">
+
+    return (<>
+
+        <Navbar />
+        <div >
             <div className="grid grid-cols-12 mt-4">
                 <div className="col-span-4 md:col-span-2 lg:col-span-3 xl:col-span-4"></div>
                 <div className="col-span-12 md:col-span-8 lg:col-span-6 xl:col-span-4">
@@ -148,7 +150,7 @@ const LoginForm = () => {
                         {/* Social Login Buttons */}
                         <div className="social-login-container flex justify-center items-center flex-col space-y-4 mt-10">
                             <a
-                                 onClick={(event) => {
+                                onClick={(event) => {
                                     event.preventDefault();
                                     handleThirdPartyAuth("google");
                                 }}
@@ -164,7 +166,7 @@ const LoginForm = () => {
                                 Sign in with Google
                             </a>
                             <a
-                                 onClick={(event) => {
+                                onClick={(event) => {
                                     event.preventDefault();
                                     handleThirdPartyAuth("github");
                                 }}

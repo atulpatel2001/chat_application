@@ -58,13 +58,13 @@ const ContactForm: React.FC<ContactFormProps> = () => {
                 } else {
                     if (response?.status == 401) {
                         dispatch(logout());
-                        toast.error(response.message, {
-                            style: {
-                                fontSize: '15px',
-                                fontWeight: 'bold',
-                                width: '400px',
-                            },
-                        });
+                        // toast.error(response.message, {
+                        //     style: {
+                        //         fontSize: '15px',
+                        //         fontWeight: 'bold',
+                        //         width: '400px',
+                        //     },
+                        // });
 
                         router.push("/chat/login");
 

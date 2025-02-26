@@ -13,6 +13,7 @@
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@reduxjs/toolkit": "^2.5.0",
+    "@shadcn/ui": "^0.0.4",
     "@stomp/stompjs": "^7.0.0",
     "axios": "^1.7.9",
     "chat_app_frontend": "file:",

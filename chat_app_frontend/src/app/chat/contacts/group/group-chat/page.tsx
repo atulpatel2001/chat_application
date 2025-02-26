@@ -244,6 +244,13 @@ const GroupChat = () => {
       });
     }
     setNewMessage("");
+    setTypingMessage({
+       chatRoomId:selectedGroup?.id || "",
+       typing:false,
+       userId:loginUser?.id || "",
+       userName:""
+
+    })
   }, [loginUser]);
 
 

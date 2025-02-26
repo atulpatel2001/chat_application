@@ -21,8 +21,9 @@ const Navbar = () => {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme as 'light' | 'dark');
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-  
+    if (typeof window !== "undefined") {
+      document.documentElement.classList[savedTheme === "dark" ? "add" : "remove"]("dark");
+    }
     // Set loading to true before dispatching
     setLoading(true);
     dispatch(loadUserFromStorage());
@@ -38,10 +39,12 @@ const Navbar = () => {
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-    localStorage.setItem('theme', newTheme);
+    if (typeof window !== "undefined") {
+      document.documentElement.classList[newTheme === "dark" ? "add" : "remove"]("dark");
+      localStorage.setItem('theme', newTheme);
+    }
   };
-
+  
   const handleLogout = () => {
     dispatch(logout());
     toast.success("Successfully Logout, Thank you for your visit..", {

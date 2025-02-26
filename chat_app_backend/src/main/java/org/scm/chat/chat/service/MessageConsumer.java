@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Component
-public class MessageConsumer {
+public class  MessageConsumer {
 
     @Autowired
     private UserRepository userRepository;
