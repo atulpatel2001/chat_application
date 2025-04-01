@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { loadUserFromStorage, login_, User } from '@/app/redux/slice/authSlice';
+import Loader from '@/app/component/Loader';
 
 const LoginSuccess = () => {
     const router = useRouter();
@@ -27,7 +28,7 @@ const LoginSuccess = () => {
                 })
             );
 
-            dispatch(loadUserFromStorage())
+            dispatch(loadUserFromStorage());
             
             router.push('/chat/user/dashboard'); 
         } else {
@@ -37,17 +38,12 @@ const LoginSuccess = () => {
     }, [router,dispatch]);
 
     return (
-        <div className="relative w-full h-screen bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-white bg-opacity-30 backdrop-blur-lg"></div>
-            <div className="relative z-10 text-center">
-                <div className="animate-spin rounded-full border-4 border-t-transparent border-white h-12 w-12 mb-6"></div>
-                <h1 className="text-white text-2xl font-semibold">
-                    Processing your login...
-                </h1>
-                <p className="text-white text-sm opacity-90 mt-2">
-                    Please wait while we authenticate your details.
-                </p>
+        <div className="relative w-full h-screen bg-gradient-to-r from-gray-800 via-gray-900 to-black text-white flex items-center justify-center overflow-hidden">
+            <div className="absolute text-center z-10">
+                <h1 className="text-3xl font-semibold mb-4">Logging you in...</h1>
+                <p className="text-lg">Please wait while we verify your credentials and redirect you to your dashboard.</p>
             </div>
+            <Loader />
         </div>
     );
 };

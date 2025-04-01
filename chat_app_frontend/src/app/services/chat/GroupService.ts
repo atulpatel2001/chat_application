@@ -247,3 +247,46 @@ export const getChats = async (roomId:string) => {
     }
 
 }
+
+
+export const removeParticipant = async (roomId:string,userId:string) => {
+    let url = baseUrl + "removeParticipant?groupId="+roomId+"&userId="+userId;
+    let token = await getToken();
+
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        console.log(response);
+        return {
+            success: true,
+            message: response.data
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            if (error != undefined) {
+                if (error.response?.status == 401) {
+                    return {
+                        success: false,
+                        message: error.response?.data,
+                        status: error.response?.status,
+                        field: false,
+                    }
+                } else {
+                    return {
+                        success: false,
+                        message: error.response?.data,
+                        status: error.response?.status,
+                        field: false,
+                    }
+                }
+
+
+            }
+        }
+    }
+
+}

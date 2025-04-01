@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import { ChatParticipantDto, ChatRoomDto } from '@/app/model/ChatRoom';
 import { addParticipant_, create, getRooms, updateGroupDetailData } from '@/app/services/chat/GroupService';
 import { getUserDetail } from '@/app/services/TokenService';
+import Loader from '@/app/component/Loader';
 
 export default function CreateGroup() {
 
@@ -288,7 +289,7 @@ export default function CreateGroup() {
   }
 
   const deleteGroup = (groupId: string) => {
-    // setGroups(groups.filter(group => group.id !== groupId));
+     setChatRoom(chatRoom.filter(group => group.id !== groupId));
     // if (selectedGroup?.id === groupId) setSelectedGroup(null);
   };
 
@@ -350,20 +351,37 @@ export default function CreateGroup() {
   };
 
   const removeParticipant = (groupId: string, userId: string) => {
-    // setGroups(groups.map(group => {
-    //   if (group.id === groupId) {
-    //     return { ...group, participants: group.participants.filter(p => p.id !== userId) };
-    //   }
-    //   return group;
-    // }));
-  };
+    console.log("removeParticipant", groupId, userId);
+    setIsLoading(true);
+
+    setChatRoom(prevChatRooms => prevChatRooms.map(group => 
+      group.id === groupId
+          ? { ...group, participants: group.participants.filter(p => p.id !== userId) }
+          : group
+    ));
+  setSelectedGroup(prevChatRoom => {
+    if (prevChatRoom === null) return null;
+        return prevChatRoom.id === groupId
+        ? { 
+            ...prevChatRoom, 
+            participants: prevChatRoom.participants.filter(p => p.id !== userId) 
+          }
+        : prevChatRoom;
+});
+
+     setIsLoading(false);
+     toast.success("Successfully Remove Participant....");
+};
+
 
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
-        </div>
+        // <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
+        //   <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
+        // </div>
+       
+        <Loader/>
       )}
       <Navbar />
       <main className="flex h-screen" style={{ marginLeft: "150px" }}>
